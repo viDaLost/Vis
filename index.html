@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Виселица 3D — Three.js</title>
+  <style>
+    :root {
+      --bg0: #070812;
+      --bg1: #111827;
+      --panel: rgba(15, 23, 42, .72);
+      --panel2: rgba(255, 255, 255, .08);
+      --line: rgba(255, 255, 255, .14);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --gold: #ffd166;
+      --gold2: #ffb703;
+      --cyan: #67e8f9;
+      --green: #86efac;
+      --red: #fb7185;
+      --violet: #a78bfa;
+      --shadow: 0 28px 80px rgba(0,0,0,.38);
+      --r-xl: 32px;
+      --r-lg: 22px;
+      --r-md: 16px;
+      --fails: 0;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 12%, rgba(103, 232, 249, .18), transparent 29%),
+        radial-gradient(circle at 84% 14%, rgba(167, 139, 250, .16), transparent 27%),
+        radial-gradient(circle at 52% 100%, rgba(255, 209, 102, .12), transparent 34%),
+        linear-gradient(145deg, var(--bg0), var(--bg1));
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: radial-gradient(circle at 50% 30%, #000, transparent 78%);
+    }
+
+    button { font: inherit; }
+
+    .app {
+      width: min(1240px, calc(100% - 28px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 24px 0 34px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 14px; }
+
+    .mark {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: linear-gradient(145deg, var(--gold), var(--gold2));
+      color: #111827;
+      font-size: 28px;
+      font-weight: 1000;
+      box-shadow: 0 16px 38px rgba(255,183,3,.25);
+      transform: rotate(-5deg);
+    }
+
+    h1 {
+      margin: 0;
+      line-height: .95;
+      letter-spacing: -.055em;
+      font-size: clamp(26px, 4vw, 48px);
+    }
+
+    .brand p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(82px, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      min-width: 82px;
+      padding: 11px 14px;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.065);
+      backdrop-filter: blur(18px);
+    }
+
+    .stat b { display: block; color: var(--gold); font-size: 22px; }
+    .stat span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(360px, 1.08fr) minmax(340px, .92fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--r-xl);
+      background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.045)), var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+    }
+
+    .scene-card {
+      min-height: 690px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      position: relative;
+    }
+
+    .scene-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 20px 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .scene-head h2 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+    .scene-head small { color: var(--muted); }
+
+    .badge {
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--cyan);
+      border: 1px solid rgba(103,232,249,.28);
+      background: rgba(103,232,249,.08);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    #scene3d {
+      position: relative;
+      width: 100%;
+      min-height: 570px;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #scene3d:active { cursor: grabbing; }
+
+    .loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: radial-gradient(circle at center, rgba(15,23,42,.72), rgba(7,8,18,.28));
+      transition: opacity .35s ease, visibility .35s ease;
+    }
+
+    .loading.hidden { opacity: 0; visibility: hidden; }
+
+    .loader-box {
+      width: min(360px, 90%);
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(15, 23, 42, .78);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .loader-orb {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 14px;
+      border-radius: 22px;
+      background: conic-gradient(from 0deg, var(--cyan), var(--gold), var(--violet), var(--cyan));
+      animation: spin 1.1s linear infinite;
+      box-shadow: 0 0 30px rgba(103,232,249,.22);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-box h3 { margin: 0 0 6px; }
+    .loader-box p { margin: 0 0 14px; color: var(--muted); line-height: 1.45; }
+
+    .load-track {
+      height: 11px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .load-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--cyan), var(--gold));
+      transition: width .25s ease;
+    }
+
+    .scene-footer {
+      display: grid;
+      gap: 10px;
+      padding: 0 20px 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .risk-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .risk-track {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.09);
+    }
+
+    .risk-fill {
+      width: calc((var(--fails) / 6) * 100%);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--gold), var(--red));
+      box-shadow: 0 0 24px rgba(255,209,102,.25);
+      transition: width .45s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .game-card {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 690px;
+    }
+
+    .game-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .category {
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+    }
+
+    .hint {
+      min-height: 46px;
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .modes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+    .chip {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(255,255,255,.065);
+      cursor: pointer;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .chip:hover { transform: translateY(-2px); background: rgba(255,255,255,.11); }
+    .chip.active { color: var(--gold); border-color: rgba(255,209,102,.42); background: rgba(255,209,102,.12); }
+
+    .word {
+      min-height: 116px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(6px, 1vw, 10px);
+      flex-wrap: wrap;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 28px;
+      background: radial-gradient(circle at 50% 0%, rgba(103,232,249,.12), transparent 42%), rgba(255,255,255,.055);
+      padding: 20px 12px;
+    }
+
+    .slot {
+      width: clamp(32px, 5.5vw, 50px);
+      height: clamp(44px, 7vw, 64px);
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 14px 30px rgba(0,0,0,.18);
+      color: var(--gold);
+      font-size: clamp(22px, 3.4vw, 32px);
+      font-weight: 1000;
+      animation: slotIn .32s cubic-bezier(.2,.8,.2,1) both;
+      animation-delay: calc(var(--i) * 32ms);
+    }
+
+    .slot.hidden { color: transparent; position: relative; }
+    .slot.hidden::after {
+      content: "";
+      position: absolute;
+      left: 28%;
+      right: 28%;
+      bottom: 14px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.46);
+    }
+
+    @keyframes slotIn {
+      from { opacity: 0; transform: translateY(16px) rotateX(35deg) scale(.92); }
+      to { opacity: 1; transform: translateY(0) rotateX(0) scale(1); }
+    }
+
+    .message {
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 22px;
+      padding: 14px 15px;
+      color: var(--muted);
+      background: rgba(255,255,255,.055);
+      line-height: 1.45;
+    }
+
+    .message strong { color: var(--text); }
+
+    .keyboard { display: grid; gap: 8px; margin-top: auto; }
+    .key-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; }
+
+    .key {
+      width: clamp(35px, 5.2vw, 46px);
+      height: 46px;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 15px;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.055));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 20px rgba(0,0,0,.2);
+      cursor: pointer;
+      font-weight: 900;
+      transition: transform .16s ease, filter .16s ease, opacity .16s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .key:hover:not(:disabled) { transform: translateY(-3px) scale(1.03); filter: brightness(1.1); }
+    .key:active:not(:disabled) { transform: translateY(0) scale(.98); }
+    .key:disabled { cursor: default; opacity: .82; }
+    .key.good { color: #052e16; background: linear-gradient(180deg, #bbf7d0, #86efac); }
+    .key.bad { color: #450a0a; background: linear-gradient(180deg, #fecdd3, #fb7185); }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .btn {
+      border: 0;
+      border-radius: 18px;
+      padding: 13px 16px;
+      cursor: pointer;
+      color: #111827;
+      font-weight: 1000;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      box-shadow: 0 14px 30px rgba(255,183,3,.22), inset 0 1px 0 rgba(255,255,255,.35);
+      transition: transform .18s ease, filter .18s ease;
+    }
+
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .btn.secondary { color: var(--text); background: rgba(255,255,255,.075); border: 1px solid rgba(255,255,255,.13); box-shadow: none; }
+
+    .shake { animation: shake .42s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: rgba(0,0,0,.5);
+      backdrop-filter: blur(12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    .modal.show { opacity: 1; pointer-events: auto; }
+
+    .modal-box {
+      width: min(470px, 100%);
+      padding: 26px;
+      text-align: center;
+      border-radius: 32px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: radial-gradient(circle at 50% 0%, rgba(255,209,102,.16), transparent 38%), linear-gradient(180deg, rgba(31,41,55,.96), rgba(8,9,20,.96));
+      box-shadow: var(--shadow);
+      transform: translateY(18px) scale(.96);
+      transition: transform .28s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .modal.show .modal-box { transform: translateY(0) scale(1); }
+    .modal-icon { font-size: 42px; margin-bottom: 8px; }
+    .modal h2 { margin: 0; font-size: 32px; letter-spacing: -.045em; }
+    .modal p { margin: 10px 0 18px; color: var(--muted); line-height: 1.5; }
+
+    .answer {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: var(--gold);
+      background: rgba(255,209,102,.1);
+      border: 1px solid rgba(255,209,102,.26);
+      font-weight: 1000;
+    }
+
+    canvas.fx {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      pointer-events: none;
+    }
+
+    @media (max-width: 900px) {
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .stats { width: 100%; }
+      .layout { grid-template-columns: 1fr; }
+      .scene-card, .game-card { min-height: auto; }
+      #scene3d { min-height: 470px; }
+      .game-head { flex-direction: column; }
+      .modes { justify-content: flex-start; }
+    }
+
+    @media (max-width: 520px) {
+      .app { width: min(100% - 18px, 1240px); padding-top: 12px; }
+      .mark { width: 48px; height: 48px; }
+      .card { border-radius: 24px; }
+      #scene3d { min-height: 390px; }
+      .scene-head { padding: 16px 16px 0; }
+      .scene-footer { padding: 0 16px 16px; }
+      .game-card { padding: 16px; }
+      .stats { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="fx" class="fx"></canvas>
+
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">3D</div>
+        <div>
+          <h1>Виселица</h1>
+          <p>Новая версия на Three.js с твоими GLB-моделями.</p>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b id="wins">0</b><span>Побед</span></div>
+        <div class="stat"><b id="losses">0</b><span>Поражений</span></div>
+        <div class="stat"><b id="streak">0</b><span>Серия</span></div>
+      </div>
+    </header>
+
+    <section class="layout">
+      <article class="card scene-card">
+        <div class="scene-head">
+          <div>
+            <h2>Интерактивная 3D-сцена</h2>
+            <small>Можно вращать мышью или пальцем</small>
+          </div>
+          <div class="badge">Three.js + GLB</div>
+        </div>
+
+        <div id="scene3d">
+          <div class="loading" id="loading">
+            <div class="loader-box">
+              <div class="loader-orb"></div>
+              <h3>Загружаю модели</h3>
+              <p id="loadText">Подключаю виселицу и персонажа...</p>
+              <div class="load-track"><div class="load-fill" id="loadFill"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scene-footer">
+          <div class="risk-row">
+            <span>Ошибки: <strong id="failsText">0</strong> / 6</span>
+            <span id="stageText">Сцена спокойна</span>
+          </div>
+          <div class="risk-track"><div class="risk-fill"></div></div>
+        </div>
+      </article>
+
+      <article class="card game-card" id="gameCard">
+        <div class="game-head">
+          <div>
+            <div class="category" id="category">Категория</div>
+            <p class="hint" id="hint">Подсказка появится здесь.</p>
+          </div>
+          <div class="modes" id="modes">
+            <button class="chip active" data-mode="easy">Легко</button>
+            <button class="chip" data-mode="normal">Нормально</button>
+            <button class="chip" data-mode="hard">Сложно</button>
+          </div>
+        </div>
+
+        <div class="word" id="word"></div>
+        <div class="message" id="message"><strong>Правило:</strong> угадай слово, пока не накопилось 6 ошибок.</div>
+        <div class="keyboard" id="keyboard"></div>
+
+        <div class="actions">
+          <button class="btn" id="newGame">Новая игра</button>
+          <button class="btn secondary" id="showHint">Открыть подсказку</button>
+          <button class="btn secondary" id="resetStats">Сбросить счёт</button>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <div class="modal-icon" id="modalIcon">🏆</div>
+      <h2 id="modalTitle">Победа!</h2>
+      <p id="modalText">Ты угадал слово.</p>
+      <div class="answer" id="modalAnswer">СЛОВО</div><br />
+      <button class="btn" id="playAgain">Играть ещё</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js";
+    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/GLTFLoader.js";
+    import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js";
+
+    const WORDS = [
+      { word: "АЛГОРИТМ", category: "Технологии", hint: "Пошаговая схема решения задачи." },
+      { word: "ИНТЕРФЕЙС", category: "Дизайн", hint: "Через него человек управляет программой." },
+      { word: "КОМПИЛЯТОР", category: "Программирование", hint: "Превращает код в другую форму, понятную машине." },
+      { word: "АРХИТЕКТУРА", category: "Разработка", hint: "Главная структура системы и связи между частями." },
+      { word: "ПРОТОТИП", category: "Продукт", hint: "Ранняя версия идеи для быстрой проверки." },
+      { word: "НЕЙРОСЕТЬ", category: "ИИ", hint: "Модель, обучающаяся на данных." },
+      { word: "ОПТИМИЗАЦИЯ", category: "Инженерия", hint: "Улучшение скорости, качества или расхода ресурсов." },
+      { word: "АНИМАЦИЯ", category: "Графика", hint: "Создаёт ощущение движения." },
+      { word: "ПЕРЕМЕННАЯ", category: "JavaScript", hint: "Именованное место для хранения значения." },
+      { word: "КОМПОНЕНТ", category: "Frontend", hint: "Самостоятельный блок интерфейса." },
+      { word: "БРАУЗЕР", category: "Web", hint: "Программа, которая открывает сайты." },
+      { word: "СЕРВЕР", category: "Интернет", hint: "Обрабатывает запросы и отдаёт данные." },
+      { word: "ФУНКЦИЯ", category: "Код", hint: "Переиспользуемый блок логики." },
+      { word: "ГОЛОГРАММА", category: "Фантастика", hint: "Объёмное световое изображение." },
+      { word: "ПИКСЕЛЬ", category: "Графика", hint: "Минимальная точка цифрового изображения." },
+      { word: "РЕНДЕРИНГ", category: "3D", hint: "Процесс построения итоговой картинки из сцены." },
+      { word: "ТЕКСТУРА", category: "3D", hint: "Картинка, нанесённая на поверхность модели." },
+      { word: "ПОЛИГОН", category: "3D", hint: "Грань, из которой строится поверхность модели." },
+      { word: "КЛАВИАТУРА", category: "Устройство", hint: "С неё удобно вводить буквы." },
+      { word: "ПРОГРАММИСТ", category: "Профессия", hint: "Создаёт логику, сайты, приложения и игры." }
+    ];
+
+    const ROWS = ["ЙЦУКЕНГШЩЗХЪ", "ФЫВАПРОЛДЖЭ", "ЯЧСМИТЬБЮЁ"];
+    const MAX_FAILS = 6;
+    const KEYBOARD_MAP = {
+      q: "Й", w: "Ц", e: "У", r: "К", t: "Е", y: "Н", u: "Г", i: "Ш", o: "Щ", p: "З", "[": "Х", "]": "Ъ",
+      a: "Ф", s: "Ы", d: "В", f: "А", g: "П", h: "Р", j: "О", k: "Л", l: "Д", ";": "Ж", "'": "Э",
+      z: "Я", x: "Ч", c: "С", v: "М", b: "И", n: "Т", m: "Ь", ",": "Б", ".": "Ю", "`": "Ё"
+    };
+
+    const els = {
+      scene3d: document.getElementById("scene3d"),
+      loading: document.getElementById("loading"),
+      loadFill: document.getElementById("loadFill"),
+      loadText: document.getElementById("loadText"),
+      word: document.getElementById("word"),
+      keyboard: document.getElementById("keyboard"),
+      category: document.getElementById("category"),
+      hint: document.getElementById("hint"),
+      message: document.getElementById("message"),
+      failsText: document.getElementById("failsText"),
+      stageText: document.getElementById("stageText"),
+      gameCard: document.getElementById("gameCard"),
+      wins: document.getElementById("wins"),
+      losses: document.getElementById("losses"),
+      streak: document.getElementById("streak"),
+      modes: document.getElementById("modes"),
+      newGame: document.getElementById("newGame"),
+      showHint: document.getElementById("showHint"),
+      resetStats: document.getElementById("resetStats"),
+      modal: document.getElementById("modal"),
+      modalIcon: document.getElementById("modalIcon"),
+      modalTitle: document.getElementById("modalTitle"),
+      modalText: document.getElementById("modalText"),
+      modalAnswer: document.getElementById("modalAnswer"),
+      playAgain: document.getElementById("playAgain"),
+      fx: document.getElementById("fx")
+    };
+
+    const storage = {
+      load() {
+        try { return JSON.parse(localStorage.getItem("three-hangman-stats")) || { wins: 0, losses: 0, streak: 0 }; }
+        catch { return { wins: 0, losses: 0, streak: 0 }; }
+      },
+      save(stats) { localStorage.setItem("three-hangman-stats", JSON.stringify(stats)); }
+    };
+
+    class ThreeHangmanScene {
+      constructor(container) {
+        this.container = container;
+        this.clock = new THREE.Clock();
+        this.mixers = [];
+        this.failStage = 0;
+        this.targetFailStage = 0;
+        this.modelReady = false;
+        this.endState = null;
+        this.shake = 0;
+        this.humanMaterials = [];
+        this.gallows = null;
+        this.human = null;
+        this.humanRig = new THREE.Group();
+        this.fxGroup = new THREE.Group();
+        this.rings = [];
+        this.init();
+      }
+
+      init() {
+        this.scene = new THREE.Scene();
+        this.scene.fog = new THREE.FogExp2(0x070812, 0.04);
+
+        this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+        this.camera.position.set(4.6, 3.1, 6.6);
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.05;
+        this.container.appendChild(this.renderer.domElement);
+
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.06;
+        this.controls.target.set(0, 1.65, 0);
+        this.controls.maxDistance = 10;
+        this.controls.minDistance = 3.5;
+        this.controls.maxPolarAngle = Math.PI * 0.48;
+        this.controls.minPolarAngle = Math.PI * 0.18;
+
+        this.buildLights();
+        this.buildEnvironment();
+        this.buildProceduralRope();
+        this.scene.add(this.humanRig);
+        this.scene.add(this.fxGroup);
+
+        window.addEventListener("resize", () => this.resize());
+        this.resize();
+        this.animate();
+      }
+
+      buildLights() {
+        this.scene.add(new THREE.HemisphereLight(0x9bdcff, 0x141018, 1.3));
+
+        const key = new THREE.DirectionalLight(0xffffff, 2.2);
+        key.position.set(4, 6, 4);
+        key.castShadow = true;
+        key.shadow.mapSize.set(2048, 2048);
+        key.shadow.camera.near = .5;
+        key.shadow.camera.far = 18;
+        key.shadow.camera.left = -8;
+        key.shadow.camera.right = 8;
+        key.shadow.camera.top = 8;
+        key.shadow.camera.bottom = -8;
+        this.scene.add(key);
+
+        this.cyanLight = new THREE.PointLight(0x67e8f9, 3, 7);
+        this.cyanLight.position.set(-2.6, 2.8, 2.6);
+        this.scene.add(this.cyanLight);
+
+        this.goldLight = new THREE.PointLight(0xffd166, 2.2, 6);
+        this.goldLight.position.set(2.8, 1.7, -1.7);
+        this.scene.add(this.goldLight);
+
+        this.failLight = new THREE.PointLight(0xfb7185, 0, 6);
+        this.failLight.position.set(.7, 2.25, 1.15);
+        this.scene.add(this.failLight);
+
+        this.spot = new THREE.SpotLight(0xfff3c4, 5, 9, Math.PI * .18, .45, 1.2);
+        this.spot.position.set(.7, 5.8, 1.3);
+        this.spot.target.position.set(.7, 1.2, .05);
+        this.spot.castShadow = true;
+        this.scene.add(this.spot, this.spot.target);
+      }
+
+      buildEnvironment() {
+        const floorMat = new THREE.MeshStandardMaterial({
+          color: 0x101827,
+          roughness: .88,
+          metalness: .05
+        });
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(5.8, 96), floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        this.scene.add(floor);
+
+        const grid = new THREE.GridHelper(10, 26, 0x67e8f9, 0x334155);
+        grid.position.y = .012;
+        grid.material.transparent = true;
+        grid.material.opacity = .17;
+        this.scene.add(grid);
+
+        const backGeo = new THREE.TorusGeometry(2.75, .012, 8, 140);
+        const backMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: .16 });
+        const halo = new THREE.Mesh(backGeo, backMat);
+        halo.position.set(.3, 2.05, -1.9);
+        halo.rotation.y = Math.PI * .04;
+        this.fxGroup.add(halo);
+        this.halo = halo;
+
+        for (let i = 0; i < 48; i++) {
+          const star = new THREE.Mesh(
+            new THREE.SphereGeometry(Math.random() * .014 + .007, 8, 8),
+            new THREE.MeshBasicMaterial({ color: Math.random() > .5 ? 0x67e8f9 : 0xffd166, transparent: true, opacity: .45 })
+          );
+          star.position.set((Math.random() - .5) * 9, Math.random() * 4 + 1.2, -2.4 - Math.random() * 2);
+          this.fxGroup.add(star);
+        }
+      }
+
+      buildProceduralRope() {
+        const ropeMat = new THREE.MeshStandardMaterial({ color: 0xc69c55, roughness: .84, metalness: 0 });
+        const rope = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, 1.15, 18), ropeMat);
+        rope.position.set(.72, 2.78, .03);
+        rope.castShadow = true;
+        this.fxGroup.add(rope);
+
+        const knot = new THREE.Mesh(new THREE.TorusGeometry(.18, .032, 14, 42), ropeMat);
+        knot.position.set(.72, 2.18, .03);
+        knot.rotation.x = Math.PI / 2;
+        knot.castShadow = true;
+        this.fxGroup.add(knot);
+
+        for (let i = 0; i < MAX_FAILS; i++) {
+          const mat = new THREE.MeshBasicMaterial({
+            color: i < 3 ? 0x67e8f9 : 0xfb7185,
+            transparent: true,
+            opacity: 0
+          });
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(.72 + i * .035, .009, 8, 96), mat);
+          ring.position.set(.72, 1.38 + i * .14, .02);
+          ring.rotation.x = Math.PI / 2;
+          ring.scale.setScalar(.2);
+          this.rings.push(ring);
+          this.fxGroup.add(ring);
+        }
+      }
+
+      async loadModels(onProgress) {
+        const manager = new THREE.LoadingManager();
+        const loader = new GLTFLoader(manager);
+
+        manager.onProgress = (url, loaded, total) => {
+          onProgress?.(Math.round((loaded / Math.max(total, 1)) * 100), url);
+        };
+
+        const load = (url) => new Promise((resolve, reject) => {
+          loader.load(url, resolve, undefined, reject);
+        });
+
+        try {
+          const [gallowsGltf, humanGltf] = await Promise.all([
+            load("./models/Gallows.glb"),
+            load("./models/peasant.glb")
+          ]);
+
+          this.gallows = gallowsGltf.scene;
+          this.prepareModel(this.gallows, { targetHeight: 4.6, shadow: true });
+          this.gallows.position.set(-.44, 0, -.08);
+          this.gallows.rotation.y = -Math.PI * .06;
+          this.scene.add(this.gallows);
+
+          this.human = humanGltf.scene;
+          this.prepareModel(this.human, { targetHeight: 2.14, shadow: true, transparent: true });
+          this.human.rotation.y = Math.PI;
+          this.humanRig.add(this.human);
+          this.humanRig.position.set(.72, .06, .17);
+          this.humanRig.scale.setScalar(.86);
+          this.humanRig.visible = true;
+          this.setHumanOpacity(0);
+          this.modelReady = true;
+          this.setFailStage(0, true);
+        } catch (error) {
+          console.error(error);
+          this.buildFallbackModels();
+          this.modelReady = true;
+        }
+      }
+
+      buildFallbackModels() {
+        const wood = new THREE.MeshStandardMaterial({ color: 0x9a6738, roughness: .78 });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, roughness: .58 });
+        const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, .18, .36), wood);
+        base.position.set(-.25, .09, 0);
+        const pole = new THREE.Mesh(new THREE.BoxGeometry(.18, 3.5, .18), wood);
+        pole.position.set(-1.1, 1.75, 0);
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(1.95, .18, .18), wood);
+        beam.position.set(-.22, 3.42, 0);
+        const brace = new THREE.Mesh(new THREE.BoxGeometry(1.15, .14, .14), wood);
+        brace.position.set(-.72, 3.05, 0);
+        brace.rotation.z = -.72;
+        this.gallows = new THREE.Group();
+        this.gallows.add(base, pole, beam, brace);
+        this.gallows.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+        this.scene.add(this.gallows);
+
+        const human = new THREE.Group();
+        const head = new THREE.Mesh(new THREE.SphereGeometry(.22, 24, 24), bodyMat);
+        head.position.y = 1.8;
+        const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.16, .7, 8, 18), bodyMat);
+        torso.position.y = 1.18;
+        human.add(head, torso);
+        this.human = human;
+        this.prepareModel(this.human, { targetHeight: 2.1, shadow: true, transparent: true });
+        this.humanRig.add(this.human);
+        this.humanRig.position.set(.72, 0, .16);
+        this.humanMaterials = [];
+        this.human.traverse(o => {
+          if (o.isMesh) {
+            o.material = bodyMat.clone();
+            o.material.transparent = true;
+            this.humanMaterials.push(o.material);
+          }
+        });
+      }
+
+      prepareModel(object, options = {}) {
+        const { targetHeight = 2, shadow = true, transparent = false } = options;
+        object.updateMatrixWorld(true);
+        let box = new THREE.Box3().setFromObject(object);
+        const size = box.getSize(new THREE.Vector3());
+        const scale = targetHeight / Math.max(size.y || 1, .0001);
+        object.scale.multiplyScalar(scale);
+        object.updateMatrixWorld(true);
+        box = new THREE.Box3().setFromObject(object);
+        const center = box.getCenter(new THREE.Vector3());
+        object.position.sub(center);
+        object.updateMatrixWorld(true);
+        box = new THREE.Box3().setFromObject(object);
+        object.position.y -= box.min.y;
+
+        object.traverse(node => {
+          if (!node.isMesh) return;
+          node.castShadow = shadow;
+          node.receiveShadow = shadow;
+          if (node.material) {
+            node.material = node.material.clone();
+            node.material.side = THREE.DoubleSide;
+            node.material.needsUpdate = true;
+            if (transparent) {
+              node.material.transparent = true;
+              node.material.opacity = 0;
+              this.humanMaterials.push(node.material);
+            }
+          }
+        });
+      }
+
+      setHumanOpacity(value) {
+        this.humanMaterials.forEach(mat => {
+          mat.opacity = value;
+          mat.transparent = value < 1;
+          mat.depthWrite = value > .55;
+        });
+      }
+
+      setFailStage(stage, immediate = false) {
+        this.targetFailStage = THREE.MathUtils.clamp(stage, 0, MAX_FAILS);
+        if (immediate) this.failStage = this.targetFailStage;
+        this.shake = Math.max(this.shake, stage > this.failStage ? .18 : 0);
+      }
+
+      setRoundState(type) {
+        this.endState = type;
+        if (type === "win") {
+          this.failLight.intensity = 0;
+          this.cyanLight.intensity = 4;
+        }
+        if (type === "lose") {
+          this.failLight.intensity = 5.8;
+        }
+      }
+
+      resetRound() {
+        this.endState = null;
+        this.targetFailStage = 0;
+        this.failStage = 0;
+        this.shake = 0;
+        this.setHumanOpacity(0);
+        this.humanRig.position.set(.72, .06, .17);
+        this.humanRig.rotation.set(0, 0, 0);
+        this.humanRig.scale.setScalar(.86);
+        this.failLight.intensity = 0;
+        this.cyanLight.intensity = 3;
+      }
+
+      resize() {
+        const width = this.container.clientWidth;
+        const height = this.container.clientHeight;
+        this.camera.aspect = width / Math.max(height, 1);
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(width, height);
+      }
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        const delta = this.clock.getDelta();
+        const t = this.clock.elapsedTime;
+
+        this.controls.update();
+        this.mixers.forEach(m => m.update(delta));
+
+        this.failStage = THREE.MathUtils.lerp(this.failStage, this.targetFailStage, 1 - Math.pow(.001, delta));
+        this.updateStageAnimation(t, delta);
+
+        if (this.halo) {
+          this.halo.rotation.z = t * .07;
+          this.halo.material.opacity = .11 + Math.sin(t * 1.5) * .035;
+        }
+
+        if (this.gallows) {
+          this.gallows.rotation.z = Math.sin(t * .9) * .004;
+        }
+
+        this.renderer.render(this.scene, this.camera);
+      }
+
+      updateStageAnimation(t, delta) {
+        const f = this.failStage;
+        const normalized = f / MAX_FAILS;
+        const opacity = this.endState === "win" ? .62 : Math.min(1, normalized * 1.22);
+        this.setHumanOpacity(opacity);
+
+        const y = .06 + normalized * .06;
+        const z = .34 - normalized * .17;
+        const scale = .86 + normalized * .17;
+        const swing = Math.sin(t * (1.25 + normalized * 1.65)) * normalized * .14;
+        const finalTilt = this.endState === "lose" ? .22 : 0;
+        const winLift = this.endState === "win" ? Math.sin(t * 2.2) * .045 : 0;
+
+        this.humanRig.position.y = THREE.MathUtils.lerp(this.humanRig.position.y, y + winLift, .08);
+        this.humanRig.position.z = THREE.MathUtils.lerp(this.humanRig.position.z, z, .08);
+        this.humanRig.scale.setScalar(THREE.MathUtils.lerp(this.humanRig.scale.x, scale, .08));
+        this.humanRig.rotation.z = swing + finalTilt;
+        this.humanRig.rotation.x = Math.sin(t * 1.3) * normalized * .035;
+
+        this.rings.forEach((ring, i) => {
+          const visible = f > i + .08;
+          const progress = THREE.MathUtils.clamp(f - i, 0, 1);
+          ring.material.opacity = THREE.MathUtils.lerp(ring.material.opacity, visible ? .13 + progress * .32 : 0, .09);
+          const s = visible ? 1 + Math.sin(t * 2.6 + i) * .035 : .2;
+          ring.scale.setScalar(THREE.MathUtils.lerp(ring.scale.x, s, .1));
+          ring.rotation.z += delta * (.35 + i * .05);
+        });
+
+        this.failLight.intensity = THREE.MathUtils.lerp(this.failLight.intensity, this.endState === "lose" ? 6 : normalized * 3.2, .06);
+        this.failLight.position.y = 1.8 + Math.sin(t * 2.2) * .18;
+        this.goldLight.intensity = 1.8 + Math.sin(t * 1.1) * .25;
+        this.cyanLight.intensity = this.endState === "win" ? 4.3 + Math.sin(t * 3) * .4 : 2.4 + Math.sin(t * .9) * .18;
+
+        if (this.shake > .001) {
+          this.camera.position.x += (Math.random() - .5) * this.shake;
+          this.camera.position.y += (Math.random() - .5) * this.shake * .45;
+          this.shake *= Math.pow(.025, delta);
+        }
+      }
+    }
+
+    class CanvasFX {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+        this.particles = [];
+        window.addEventListener("resize", () => this.resize());
+        this.resize();
+        this.loop();
+      }
+
+      resize() {
+        const dpr = Math.min(devicePixelRatio || 1, 2);
+        this.canvas.width = innerWidth * dpr;
+        this.canvas.height = innerHeight * dpr;
+        this.canvas.style.width = innerWidth + "px";
+        this.canvas.style.height = innerHeight + "px";
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      burst(kind = "win") {
+        const amount = kind === "win" ? 150 : 42;
+        for (let i = 0; i < amount; i++) {
+          this.particles.push({
+            x: innerWidth * .5,
+            y: innerHeight * .28,
+            vx: (Math.random() - .5) * (kind === "win" ? 10 : 5),
+            vy: -Math.random() * (kind === "win" ? 8 : 4) - 2,
+            g: .16 + Math.random() * .08,
+            size: Math.random() * 8 + 4,
+            rot: Math.random() * Math.PI,
+            spin: (Math.random() - .5) * .24,
+            life: 90 + Math.random() * 45,
+            color: kind === "win" ? `hsl(${Math.random() * 80 + 35}, 95%, 64%)` : "rgba(251,113,133,.82)"
+          });
+        }
+      }
+
+      loop() {
+        requestAnimationFrame(() => this.loop());
+        this.ctx.clearRect(0, 0, innerWidth, innerHeight);
+        this.particles = this.particles.filter(p => p.life > 0);
+        for (const p of this.particles) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += p.g;
+          p.rot += p.spin;
+          p.life--;
+          this.ctx.save();
+          this.ctx.translate(p.x, p.y);
+          this.ctx.rotate(p.rot);
+          this.ctx.globalAlpha = Math.max(p.life / 100, 0);
+          this.ctx.fillStyle = p.color;
+          this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * .65);
+          this.ctx.restore();
+        }
+      }
+    }
+
+    class HangmanGame {
+      constructor(sceneController, fx) {
+        this.sceneController = sceneController;
+        this.fx = fx;
+        this.state = {
+          mode: "easy",
+          item: null,
+          guessed: new Set(),
+          fails: 0,
+          ended: false,
+          hintOpen: false,
+          stats: storage.load()
+        };
+        this.bind();
+        this.updateStats();
+        this.newRound();
+      }
+
+      bind() {
+        els.newGame.addEventListener("click", () => this.newRound());
+        els.playAgain.addEventListener("click", () => this.newRound());
+        els.showHint.addEventListener("click", () => this.openHint());
+        els.resetStats.addEventListener("click", () => this.resetStats());
+        els.modes.addEventListener("click", e => {
+          const btn = e.target.closest("[data-mode]");
+          if (!btn) return;
+          this.state.mode = btn.dataset.mode;
+          els.modes.querySelectorAll(".chip").forEach(chip => chip.classList.toggle("active", chip === btn));
+          this.newRound();
+        });
+        window.addEventListener("keydown", e => this.handleKey(e));
+        els.modal.addEventListener("click", e => { if (e.target === els.modal) els.modal.classList.remove("show"); });
+      }
+
+      getPool() {
+        const ranges = { easy: [0, 8], normal: [7, 11], hard: [10, 99] };
+        const [min, max] = ranges[this.state.mode];
+        const pool = WORDS.filter(item => item.word.length >= min && item.word.length <= max);
+        return pool.length ? pool : WORDS;
+      }
+
+      newRound() {
+        const pool = this.getPool();
+        this.state.item = pool[Math.floor(Math.random() * pool.length)];
+        this.state.guessed = new Set();
+        this.state.fails = 0;
+        this.state.ended = false;
+        this.state.hintOpen = false;
+        els.modal.classList.remove("show");
+        els.category.textContent = this.state.item.category;
+        els.hint.textContent = "Подсказка скрыта. Открой её, если хочешь облегчить раунд.";
+        els.message.innerHTML = "<strong>Новый раунд:</strong> выбери букву на экране или нажимай клавиши.";
+        this.sceneController.resetRound();
+        this.renderWord();
+        this.renderKeyboard();
+        this.updateRisk();
+      }
+
+      handleKey(event) {
+        if (event.key === "Enter") return this.newRound();
+        if (event.key === "Escape") return els.modal.classList.remove("show");
+        const letter = this.normalizeLetter(event.key);
+        if (letter) this.guess(letter);
+      }
+
+      normalizeLetter(value) {
+        if (!value || value.length !== 1) return "";
+        const lower = value.toLowerCase();
+        if (KEYBOARD_MAP[lower]) return KEYBOARD_MAP[lower];
+        const upper = value.toUpperCase();
+        return /[А-ЯЁ]/.test(upper) ? upper : "";
+      }
+
+      guess(letter) {
+        if (this.state.ended || this.state.guessed.has(letter)) return;
+        this.state.guessed.add(letter);
+
+        if (this.state.item.word.includes(letter)) {
+          els.message.innerHTML = `<strong>Попадание:</strong> буква «${letter}» есть в слове.`;
+        } else {
+          this.state.fails++;
+          els.message.innerHTML = `<strong>Ошибка:</strong> буквы «${letter}» нет. 3D-сцена стала опаснее.`;
+          els.gameCard.classList.remove("shake");
+          void els.gameCard.offsetWidth;
+          els.gameCard.classList.add("shake");
+          this.fx.burst("bad");
+        }
+
+        this.renderWord();
+        this.renderKeyboard();
+        this.updateRisk();
+        this.checkEnd();
+      }
+
+      isLetter(char) { return /[А-ЯЁ]/.test(char); }
+
+      renderWord(revealAll = false) {
+        els.word.innerHTML = [...this.state.item.word].map((char, i) => {
+          const visible = revealAll || this.state.guessed.has(char);
+          return `<span class="slot ${visible ? "" : "hidden"}" style="--i:${i}">${visible ? char : "•"}</span>`;
+        }).join("");
+      }
+
+      renderKeyboard() {
+        els.keyboard.innerHTML = "";
+        ROWS.forEach(row => {
+          const div = document.createElement("div");
+          div.className = "key-row";
+          [...row].forEach(letter => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "key";
+            btn.textContent = letter;
+            if (this.state.guessed.has(letter)) {
+              btn.disabled = true;
+              btn.classList.add(this.state.item.word.includes(letter) ? "good" : "bad");
+            }
+            btn.addEventListener("click", () => this.guess(letter));
+            div.appendChild(btn);
+          });
+          els.keyboard.appendChild(div);
+        });
+      }
+
+      updateRisk() {
+        document.documentElement.style.setProperty("--fails", String(this.state.fails));
+        els.failsText.textContent = String(this.state.fails);
+        const labels = [
+          "Сцена спокойна",
+          "Появился силуэт",
+          "Персонаж проявляется",
+          "Свет меняется",
+          "Сцена напряжена",
+          "Последний шанс",
+          "Раунд завершён"
+        ];
+        els.stageText.textContent = labels[this.state.fails] || labels[0];
+        this.sceneController.setFailStage(this.state.fails);
+      }
+
+      hasWon() {
+        return [...this.state.item.word].every(char => this.state.guessed.has(char));
+      }
+
+      checkEnd() {
+        if (this.hasWon()) return this.finish(true);
+        if (this.state.fails >= MAX_FAILS) return this.finish(false);
+      }
+
+      finish(won) {
+        this.state.ended = true;
+        this.renderWord(true);
+        if (won) {
+          this.state.stats.wins++;
+          this.state.stats.streak++;
+          this.sceneController.setRoundState("win");
+          this.fx.burst("win");
+          this.showModal("🏆", "Победа!", "Слово собрано. Серия продолжается.", this.state.item.word);
+        } else {
+          this.state.stats.losses++;
+          this.state.stats.streak = 0;
+          this.sceneController.setRoundState("lose");
+          this.showModal("💀", "Поражение", "Ошибок стало слишком много. Следующий раунд можно забрать.", this.state.item.word);
+        }
+        storage.save(this.state.stats);
+        this.updateStats();
+      }
+
+      showModal(icon, title, text, answer) {
+        els.modalIcon.textContent = icon;
+        els.modalTitle.textContent = title;
+        els.modalText.textContent = text;
+        els.modalAnswer.textContent = answer;
+        setTimeout(() => els.modal.classList.add("show"), 550);
+      }
+
+      openHint() {
+        if (this.state.hintOpen) return;
+        this.state.hintOpen = true;
+        els.hint.textContent = this.state.item.hint;
+        els.showHint.textContent = "Подсказка открыта";
+        setTimeout(() => els.showHint.textContent = "Открыть подсказку", 1100);
+      }
+
+      resetStats() {
+        this.state.stats = { wins: 0, losses: 0, streak: 0 };
+        storage.save(this.state.stats);
+        this.updateStats();
+        els.message.innerHTML = "<strong>Счёт сброшен:</strong> начинаем чистую серию.";
+      }
+
+      updateStats() {
+        els.wins.textContent = this.state.stats.wins;
+        els.losses.textContent = this.state.stats.losses;
+        els.streak.textContent = this.state.stats.streak;
+      }
+    }
+
+    const fx = new CanvasFX(els.fx);
+    const sceneController = new ThreeHangmanScene(els.scene3d);
+
+    sceneController.loadModels((progress, url) => {
+      els.loadFill.style.width = `${progress}%`;
+      els.loadText.textContent = url.includes("peasant") ? "Загружаю персонажа..." : "Загружаю виселицу...";
+    }).finally(() => {
+      els.loadFill.style.width = "100%";
+      setTimeout(() => els.loading.classList.add("hidden"), 450);
+    });
+
+    new HangmanGame(sceneController, fx);
+  </script>
+</body>
+</html>
