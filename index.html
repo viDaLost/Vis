@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Виселица 3D — Three.js</title>
   <style>
     :root {
@@ -486,6 +486,188 @@
       .game-card { padding: 16px; }
       .stats { grid-template-columns: repeat(3, 1fr); }
     }
+
+
+    /* Mobile-first polish: меньше пустоты, крупнее зоны нажатия, удобнее на iPhone */
+    @media (max-width: 760px) {
+      body {
+        background:
+          radial-gradient(circle at 18% 6%, rgba(103, 232, 249, .18), transparent 28%),
+          radial-gradient(circle at 82% 0%, rgba(167, 139, 250, .16), transparent 24%),
+          linear-gradient(145deg, #070812, #101827);
+      }
+
+      body::before { background-size: 34px 34px; opacity: .7; }
+
+      .app {
+        width: min(100% - 16px, 1240px);
+        padding-top: max(46px, env(safe-area-inset-top));
+        padding-bottom: calc(18px + env(safe-area-inset-bottom));
+      }
+
+      .topbar {
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .brand {
+        width: 100%;
+        gap: 10px;
+      }
+
+      .brand p { display: none; }
+      .mark { width: 40px; height: 40px; border-radius: 14px; font-size: 19px; }
+      h1 { font-size: 28px; letter-spacing: -.045em; }
+
+      .stats {
+        gap: 7px;
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .stat {
+        min-width: 0;
+        padding: 8px 6px;
+        border-radius: 15px;
+      }
+
+      .stat b { font-size: 19px; line-height: 1.05; }
+      .stat span { font-size: 9px; letter-spacing: .07em; }
+
+      .layout { gap: 10px; }
+      .card { border-radius: 22px; }
+
+      .scene-card {
+        min-height: 0;
+        grid-template-rows: auto auto auto;
+      }
+
+      .scene-head {
+        padding: 14px 14px 0;
+        align-items: flex-start;
+      }
+
+      .scene-head h2 { font-size: 18px; }
+      .scene-head small { font-size: 12px; }
+      .badge { padding: 7px 10px; font-size: 12px; }
+
+      #scene3d {
+        min-height: 280px;
+        height: min(330px, 42svh);
+        max-height: 330px;
+      }
+
+      .loader-box {
+        width: min(300px, 92%);
+        padding: 18px;
+        border-radius: 24px;
+      }
+
+      .loader-orb { width: 52px; height: 52px; border-radius: 18px; }
+      .loader-box h3 { font-size: 20px; }
+      .loader-box p { font-size: 14px; }
+
+      .scene-footer {
+        padding: 0 14px 14px;
+      }
+
+      .game-card {
+        padding: 14px;
+        gap: 12px;
+        min-height: 0;
+      }
+
+      .game-head {
+        gap: 10px;
+      }
+
+      .hint {
+        min-height: 0;
+        margin-top: 6px;
+        font-size: 14px;
+      }
+
+      .modes {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+      }
+
+      .chip {
+        padding: 10px 7px;
+        text-align: center;
+      }
+
+      .word {
+        min-height: 82px;
+        padding: 14px 8px;
+        border-radius: 22px;
+        gap: 6px;
+      }
+
+      .slot {
+        width: clamp(27px, 8.1vw, 38px);
+        height: 44px;
+        border-radius: 13px;
+        font-size: clamp(19px, 6vw, 26px);
+      }
+
+      .slot.hidden::after {
+        bottom: 10px;
+        height: 3px;
+      }
+
+      .message {
+        padding: 12px;
+        border-radius: 18px;
+        font-size: 14px;
+      }
+
+      .keyboard { gap: 6px; }
+      .key-row { gap: 5px; }
+
+      .key {
+        width: calc((100vw - 60px) / 8);
+        max-width: 39px;
+        min-width: 28px;
+        height: 40px;
+        border-radius: 12px;
+        font-size: 15px;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .actions .btn:first-child {
+        grid-column: 1 / -1;
+      }
+
+      .btn {
+        padding: 12px 10px;
+        border-radius: 15px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .app { width: min(100% - 12px, 1240px); }
+      #scene3d { min-height: 250px; height: 34svh; }
+      .scene-head h2 { font-size: 16px; }
+      .badge { display: none; }
+      .key { width: calc((100vw - 52px) / 8); height: 38px; font-size: 14px; }
+      .slot { width: clamp(25px, 7.6vw, 34px); height: 40px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -574,10 +756,114 @@
     </div>
   </div>
 
+
+
+  <script>
+    window.__THREE_HANGMAN_BOOTED__ = false;
+    window.__THREE_HANGMAN_READY__ = false;
+    window.__FALLBACK_GAME_STARTED__ = false;
+
+    function startEmergencyDomGame(reason) {
+      if (window.__THREE_HANGMAN_READY__ || window.__FALLBACK_GAME_STARTED__) return;
+      window.__FALLBACK_GAME_STARTED__ = true;
+
+      const words = [
+        { word: "АЛГОРИТМ", category: "Технологии", hint: "Пошаговая схема решения задачи." },
+        { word: "ИНТЕРФЕЙС", category: "Дизайн", hint: "Через него человек управляет программой." },
+        { word: "НЕЙРОСЕТЬ", category: "ИИ", hint: "Модель, обучающаяся на данных." },
+        { word: "РЕНДЕРИНГ", category: "3D", hint: "Процесс построения итоговой картинки из сцены." }
+      ];
+      const rows = ["ЙЦУКЕНГШЩЗХЪ", "ФЫВАПРОЛДЖЭ", "ЯЧСМИТЬБЮЁ"];
+      const item = words[Math.floor(Math.random() * words.length)];
+      const guessed = new Set();
+      let fails = 0;
+
+      const $ = id => document.getElementById(id);
+      const wordEl = $("word");
+      const keyboardEl = $("keyboard");
+      const categoryEl = $("category");
+      const hintEl = $("hint");
+      const messageEl = $("message");
+      const loadingEl = $("loading");
+      const loadText = $("loadText");
+      const loadFill = $("loadFill");
+
+      if (categoryEl) categoryEl.textContent = item.category;
+      if (hintEl) hintEl.textContent = "Three.js не загрузился, но игра запущена в аварийном режиме. " + item.hint;
+      if (messageEl) messageEl.innerHTML = "<strong>GitHub Pages:</strong> игра запущена без 3D. Проверь, что CDN Three.js доступен и файлы лежат в корне репозитория.";
+      if (loadText) loadText.textContent = reason || "Запускаю аварийный режим без 3D.";
+      if (loadFill) loadFill.style.width = "100%";
+      setTimeout(() => loadingEl?.classList.add("hidden"), 300);
+
+      function render() {
+        if (wordEl) {
+          wordEl.innerHTML = [...item.word].map((ch, i) => {
+            const open = guessed.has(ch);
+            return `<span class="slot ${open ? "" : "hidden"}" style="--i:${i}">${open ? ch : "•"}</span>`;
+          }).join("");
+        }
+        if (keyboardEl) {
+          keyboardEl.innerHTML = rows.map(row => `<div class="key-row">${[...row].map(l => `<button class="key ${guessed.has(l) ? (item.word.includes(l) ? "good" : "bad") : ""}" data-letter="${l}" ${guessed.has(l) ? "disabled" : ""}>${l}</button>`).join("")}</div>`).join("");
+          keyboardEl.querySelectorAll("button[data-letter]").forEach(btn => {
+            btn.addEventListener("click", () => guess(btn.dataset.letter));
+          });
+        }
+        const failsText = $("failsText");
+        if (failsText) failsText.textContent = fails;
+        document.documentElement.style.setProperty("--fails", String(fails));
+      }
+
+      function guess(letter) {
+        if (!letter || guessed.has(letter)) return;
+        guessed.add(letter);
+        if (!item.word.includes(letter)) fails++;
+        const won = [...item.word].every(ch => guessed.has(ch));
+        if (messageEl) {
+          messageEl.innerHTML = won
+            ? "<strong>Победа:</strong> слово угадано."
+            : fails >= 6
+              ? `<strong>Поражение:</strong> слово было ${item.word}.`
+              : item.word.includes(letter)
+                ? `<strong>Верно:</strong> буква «${letter}» есть.`
+                : `<strong>Промах:</strong> буквы «${letter}» нет.`;
+        }
+        if (won || fails >= 6) {
+          [...item.word].forEach(ch => guessed.add(ch));
+        }
+        render();
+      }
+
+      render();
+    }
+
+    window.addEventListener("error", () => {
+      const text = document.getElementById("loadText");
+      if (text && !window.__THREE_HANGMAN_BOOTED__) {
+        text.textContent = "Проверяю загрузку Three.js на GitHub Pages...";
+      }
+    });
+
+    window.addEventListener("unhandledrejection", () => {
+      if (!window.__THREE_HANGMAN_READY__) {
+        setTimeout(() => startEmergencyDomGame("Three.js или GLB не загрузились. Запускаю аварийный режим."), 700);
+      }
+    });
+
+    setTimeout(() => {
+      if (window.__THREE_HANGMAN_READY__ || window.__THREE_HANGMAN_BOOTED__) return;
+      startEmergencyDomGame("Three.js CDN не ответил. Запускаю аварийный режим без 3D.");
+    }, 12000);
+  </script>
+
   <script type="module">
+    window.__THREE_HANGMAN_BOOTED__ = true;
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js";
     import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/GLTFLoader.js";
     import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js";
+
+    if (window.__FALLBACK_GAME_STARTED__) {
+      throw new Error("Fallback game already started");
+    }
 
     const WORDS = [
       { word: "АЛГОРИТМ", category: "Технологии", hint: "Пошаговая схема решения задачи." },
@@ -660,6 +946,7 @@
         this.humanMaterials = [];
         this.gallows = null;
         this.human = null;
+        this.usedFallback = false;
         this.humanRig = new THREE.Group();
         this.fxGroup = new THREE.Group();
         this.rings = [];
@@ -805,26 +1092,45 @@
         const loader = new GLTFLoader(manager);
 
         manager.onProgress = (url, loaded, total) => {
-          onProgress?.(Math.round((loaded / Math.max(total, 1)) * 100), url);
+          const safeTotal = Math.max(total || 2, 2);
+          onProgress?.(Math.min(98, Math.round((loaded / safeTotal) * 100)), url);
         };
 
         const load = (url) => new Promise((resolve, reject) => {
-          loader.load(url, resolve, undefined, reject);
+          loader.load(
+            url,
+            resolve,
+            event => {
+              if (event.lengthComputable) {
+                const local = Math.round((event.loaded / event.total) * 100);
+                onProgress?.(Math.min(96, local), url);
+              }
+            },
+            reject
+          );
         });
 
-        try {
-          const [gallowsGltf, humanGltf] = await Promise.all([
-            load("./models/Gallows.glb"),
-            load("./models/peasant.glb")
-          ]);
+        const [gallowsResult, humanResult] = await Promise.allSettled([
+          load("./models/Gallows.glb"),
+          load("./models/peasant.glb")
+        ]);
 
-          this.gallows = gallowsGltf.scene;
+        if (this.usedFallback) {
+          this.modelReady = true;
+          onProgress?.(100, "ready");
+          return;
+        }
+
+        if (gallowsResult.status === "fulfilled") {
+          this.gallows = gallowsResult.value.scene;
           this.prepareModel(this.gallows, { targetHeight: 4.6, shadow: true });
           this.gallows.position.set(-.44, 0, -.08);
           this.gallows.rotation.y = -Math.PI * .06;
           this.scene.add(this.gallows);
+        }
 
-          this.human = humanGltf.scene;
+        if (humanResult.status === "fulfilled") {
+          this.human = humanResult.value.scene;
           this.prepareModel(this.human, { targetHeight: 2.14, shadow: true, transparent: true });
           this.human.rotation.y = Math.PI;
           this.humanRig.add(this.human);
@@ -832,16 +1138,21 @@
           this.humanRig.scale.setScalar(.86);
           this.humanRig.visible = true;
           this.setHumanOpacity(0);
-          this.modelReady = true;
-          this.setFailStage(0, true);
-        } catch (error) {
-          console.error(error);
-          this.buildFallbackModels();
-          this.modelReady = true;
         }
+
+        if (gallowsResult.status !== "fulfilled" || humanResult.status !== "fulfilled") {
+          console.warn("Some GLB models failed to load", { gallowsResult, humanResult });
+          if (!this.gallows || !this.human) this.buildFallbackModels({ keepLoaded: true });
+        }
+
+        this.modelReady = true;
+        this.setFailStage(0, true);
+        onProgress?.(100, "ready");
       }
 
-      buildFallbackModels() {
+      buildFallbackModels(options = {}) {
+        if (this.usedFallback) return;
+        this.usedFallback = true;
         const wood = new THREE.MeshStandardMaterial({ color: 0x9a6738, roughness: .78 });
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, roughness: .58 });
         const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, .18, .36), wood);
@@ -853,10 +1164,12 @@
         const brace = new THREE.Mesh(new THREE.BoxGeometry(1.15, .14, .14), wood);
         brace.position.set(-.72, 3.05, 0);
         brace.rotation.z = -.72;
-        this.gallows = new THREE.Group();
-        this.gallows.add(base, pole, beam, brace);
-        this.gallows.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-        this.scene.add(this.gallows);
+        if (!this.gallows) {
+          this.gallows = new THREE.Group();
+          this.gallows.add(base, pole, beam, brace);
+          this.gallows.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+          this.scene.add(this.gallows);
+        }
 
         const human = new THREE.Group();
         const head = new THREE.Mesh(new THREE.SphereGeometry(.22, 24, 24), bodyMat);
@@ -864,18 +1177,20 @@
         const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.16, .7, 8, 18), bodyMat);
         torso.position.y = 1.18;
         human.add(head, torso);
-        this.human = human;
-        this.prepareModel(this.human, { targetHeight: 2.1, shadow: true, transparent: true });
-        this.humanRig.add(this.human);
-        this.humanRig.position.set(.72, 0, .16);
-        this.humanMaterials = [];
-        this.human.traverse(o => {
-          if (o.isMesh) {
-            o.material = bodyMat.clone();
-            o.material.transparent = true;
-            this.humanMaterials.push(o.material);
-          }
-        });
+        if (!this.human) {
+          this.human = human;
+          this.prepareModel(this.human, { targetHeight: 2.1, shadow: true, transparent: true });
+          this.humanRig.add(this.human);
+          this.humanRig.position.set(.72, 0, .16);
+          this.humanMaterials = [];
+          this.human.traverse(o => {
+            if (o.isMesh) {
+              o.material = bodyMat.clone();
+              o.material.transparent = true;
+              this.humanMaterials.push(o.material);
+            }
+          });
+        }
       }
 
       prepareModel(object, options = {}) {
@@ -1279,12 +1594,35 @@
     const fx = new CanvasFX(els.fx);
     const sceneController = new ThreeHangmanScene(els.scene3d);
 
-    sceneController.loadModels((progress, url) => {
+    const loadingTimeout = new Promise(resolve => {
+      setTimeout(() => resolve("timeout"), 8000);
+    });
+
+    const modelsPromise = sceneController.loadModels((progress, url) => {
       els.loadFill.style.width = `${progress}%`;
-      els.loadText.textContent = url.includes("peasant") ? "Загружаю персонажа..." : "Загружаю виселицу...";
+      if (url === "ready") {
+        els.loadText.textContent = "Модели готовы.";
+      } else {
+        els.loadText.textContent = url.includes("peasant") ? "Загружаю персонажа..." : "Загружаю виселицу...";
+      }
+    });
+
+    Promise.race([modelsPromise, loadingTimeout]).then(result => {
+      if (result === "timeout" && !sceneController.modelReady) {
+        console.warn("GLB loading timeout. Switching to procedural fallback.");
+        sceneController.buildFallbackModels({ keepLoaded: true });
+        sceneController.modelReady = true;
+        els.loadText.textContent = "Запускаю игру в безопасном режиме.";
+      }
+    }).catch(error => {
+      console.error(error);
+      sceneController.buildFallbackModels({ keepLoaded: true });
+      sceneController.modelReady = true;
+      els.loadText.textContent = "Не удалось загрузить GLB. Запускаю резервную 3D-сцену.";
     }).finally(() => {
+      window.__THREE_HANGMAN_READY__ = true;
       els.loadFill.style.width = "100%";
-      setTimeout(() => els.loading.classList.add("hidden"), 450);
+      setTimeout(() => els.loading.classList.add("hidden"), 350);
     });
 
     new HangmanGame(sceneController, fx);
