@@ -1,1445 +1,257 @@
-<!doctype html>
-<html lang="ru">
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Виселица 3D — GitHub Pages Debug</title>
-
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
-    }
-  }
-  </script>
-
-  <style>
-    :root {
-      --bg0: #070812;
-      --bg1: #101827;
-      --card: rgba(20, 29, 48, .78);
-      --card2: rgba(255, 255, 255, .075);
-      --line: rgba(255, 255, 255, .14);
-      --text: #f8fafc;
-      --muted: #9ca3af;
-      --gold: #ffd166;
-      --gold2: #ffb703;
-      --cyan: #67e8f9;
-      --green: #86efac;
-      --red: #fb7185;
-      --violet: #a78bfa;
-      --orange: #fb923c;
-      --radius: 26px;
-      --fails: 0;
-    }
-
-    * { box-sizing: border-box; }
-    html, body { min-height: 100%; }
-
-    body {
-      margin: 0;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 18% 8%, rgba(103, 232, 249, .18), transparent 28%),
-        radial-gradient(circle at 82% 0%, rgba(167, 139, 250, .16), transparent 25%),
-        radial-gradient(circle at 50% 105%, rgba(255, 209, 102, .12), transparent 35%),
-        linear-gradient(145deg, var(--bg0), var(--bg1));
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background-image:
-        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
-      background-size: 38px 38px;
-      mask-image: radial-gradient(circle at 50% 18%, #000, transparent 82%);
-      opacity: .85;
-    }
-
-    button { font: inherit; }
-
-    .app {
-      width: min(1180px, calc(100% - 20px));
-      margin: 0 auto;
-      padding: max(12px, env(safe-area-inset-top)) 0 calc(24px + env(safe-area-inset-bottom));
-      position: relative;
-      z-index: 1;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 12px;
-    }
-
-    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-
-    .mark {
-      flex: 0 0 auto;
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      border-radius: 16px;
-      background: linear-gradient(145deg, var(--gold), var(--gold2));
-      color: #111827;
-      font-weight: 1000;
-      font-size: 22px;
-      box-shadow: 0 18px 44px rgba(255,183,3,.22);
-      transform: rotate(-5deg);
-    }
-
-    h1 {
-      margin: 0;
-      line-height: .98;
-      letter-spacing: -.055em;
-      font-size: clamp(28px, 4vw, 48px);
-      white-space: nowrap;
-    }
-
-    .brand p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(82px, 1fr));
-      gap: 9px;
-    }
-
-    .stat {
-      padding: 10px 12px;
-      text-align: center;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: rgba(255,255,255,.06);
-      backdrop-filter: blur(18px);
-    }
-
-    .stat b { display: block; color: var(--gold); font-size: 22px; line-height: 1.1; }
-    .stat span { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(360px, 1.05fr) minmax(340px, .95fr);
-      gap: 14px;
-    }
-
-    .card {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)), var(--card);
-      box-shadow: 0 24px 70px rgba(0,0,0,.34);
-      backdrop-filter: blur(20px);
-      overflow: hidden;
-    }
-
-    .scene-card {
-      display: grid;
-      grid-template-rows: auto auto auto auto;
-      min-height: 0;
-    }
-
-    .scene-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 18px 20px 0;
-      position: relative;
-      z-index: 3;
-    }
-
-    .scene-head h2 { margin: 0; font-size: 20px; letter-spacing: -.03em; }
-    .scene-head small { display: block; margin-top: 4px; color: var(--muted); }
-
-    .badge {
-      padding: 8px 12px;
-      border-radius: 999px;
-      color: var(--cyan);
-      background: rgba(103,232,249,.08);
-      border: 1px solid rgba(103,232,249,.28);
-      white-space: nowrap;
-      font-size: 13px;
-    }
-
-    #scene3d {
-      position: relative;
-      width: 100%;
-      height: min(52vh, 520px);
-      min-height: 420px;
-      cursor: grab;
-      touch-action: none;
-    }
-
-    #scene3d canvas { display: block; width: 100% !important; height: 100% !important; }
-    #scene3d:active { cursor: grabbing; }
-
-    .loading {
-      position: absolute;
-      inset: 0;
-      z-index: 8;
-      display: grid;
-      place-items: center;
-      padding: 20px;
-      background: radial-gradient(circle at center, rgba(15,23,42,.8), rgba(7,8,18,.34));
-      transition: opacity .28s ease, visibility .28s ease;
-    }
-
-    .loading.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-
-    .loader-box {
-      width: min(380px, 92%);
-      padding: 22px;
-      border-radius: 28px;
-      border: 1px solid var(--line);
-      background: rgba(13, 20, 35, .88);
-      box-shadow: 0 22px 60px rgba(0,0,0,.38);
-      text-align: center;
-    }
-
-    .loader-orb {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 14px;
-      border-radius: 22px;
-      background: conic-gradient(from 0deg, var(--cyan), var(--gold), var(--violet), var(--cyan));
-      animation: spin 1.1s linear infinite;
-      box-shadow: 0 0 35px rgba(103,232,249,.25);
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .loader-box h3 { margin: 0 0 6px; font-size: 22px; }
-    .loader-box p { margin: 0 0 14px; color: var(--muted); line-height: 1.45; }
-
-    .track, .risk-track {
-      height: 12px;
-      overflow: hidden;
-      border-radius: 999px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.1);
-    }
-
-    .fill {
-      width: 0%;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--cyan), var(--gold));
-      transition: width .28s ease;
-    }
-
-    .scene-footer {
-      display: grid;
-      gap: 10px;
-      padding: 0 20px 18px;
-    }
-
-    .risk-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .risk-fill {
-      width: calc((var(--fails) / 6) * 100%);
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--green), var(--gold), var(--red));
-      transition: width .45s cubic-bezier(.2,.8,.2,1);
-    }
-
-    .debug {
-      margin: 0 20px 18px;
-      border: 1px solid rgba(103,232,249,.22);
-      border-radius: 20px;
-      background: rgba(8, 13, 24, .74);
-      overflow: hidden;
-    }
-
-    .debug summary {
-      cursor: pointer;
-      list-style: none;
-      padding: 12px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      color: var(--cyan);
-      font-weight: 900;
-      user-select: none;
-    }
-
-    .debug summary::-webkit-details-marker { display: none; }
-    .debug summary span:last-child { color: var(--muted); font-size: 12px; font-weight: 700; }
-
-    .debug-body { border-top: 1px solid rgba(255,255,255,.08); padding: 12px; }
-
-    .diag-status {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .diag-pill {
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 14px;
-      padding: 9px 10px;
-      background: rgba(255,255,255,.045);
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .diag-pill b { display: block; color: var(--text); font-size: 13px; margin-bottom: 2px; }
-    .ok b { color: var(--green); }
-    .bad b { color: var(--red); }
-    .warn b { color: var(--gold); }
-
-    .debug-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-
-    .mini-btn {
-      border: 1px solid rgba(255,255,255,.13);
-      border-radius: 12px;
-      background: rgba(255,255,255,.075);
-      color: var(--text);
-      padding: 9px 10px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .log {
-      max-height: 210px;
-      overflow: auto;
-      margin: 0;
-      padding: 12px;
-      border-radius: 14px;
-      background: rgba(0,0,0,.28);
-      color: #dbeafe;
-      font-size: 11px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    }
-
-    .game-card {
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      min-height: 100%;
-    }
-
-    .category {
-      color: var(--cyan);
-      font-weight: 1000;
-      letter-spacing: .13em;
-      text-transform: uppercase;
-      font-size: 13px;
-    }
-
-    .hint { margin: 7px 0 0; min-height: 44px; color: var(--muted); line-height: 1.45; }
-
-    .modes {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .chip {
-      min-height: 44px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--text);
-      background: rgba(255,255,255,.07);
-      cursor: pointer;
-      transition: .18s ease;
-    }
-
-    .chip.active { color: var(--gold); border-color: rgba(255,209,102,.42); background: rgba(255,209,102,.12); }
-
-    .word {
-      min-height: 102px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      flex-wrap: wrap;
-      padding: 18px 10px;
-      border-radius: 24px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: radial-gradient(circle at 50% 0%, rgba(103,232,249,.12), transparent 42%), rgba(255,255,255,.055);
-    }
-
-    .slot {
-      width: clamp(31px, 4.7vw, 48px);
-      height: clamp(43px, 6.2vw, 60px);
-      display: grid;
-      place-items: center;
-      border-radius: 15px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
-      color: var(--gold);
-      font-weight: 1000;
-      font-size: clamp(20px, 3vw, 30px);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 14px 28px rgba(0,0,0,.18);
-      animation: slotIn .28s cubic-bezier(.2,.8,.2,1) both;
-      animation-delay: calc(var(--i) * 28ms);
-    }
-
-    .slot.hidden { color: transparent; position: relative; }
-    .slot.hidden::after {
-      content: "";
-      position: absolute;
-      left: 28%;
-      right: 28%;
-      bottom: 12px;
-      height: 4px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.48);
-    }
-
-    @keyframes slotIn { from { opacity: 0; transform: translateY(12px) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
-
-    .message {
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 20px;
-      padding: 13px 14px;
-      color: var(--muted);
-      background: rgba(255,255,255,.055);
-      line-height: 1.45;
-    }
-
-    .message strong { color: var(--text); }
-
-    .keyboard { display: grid; gap: 8px; margin-top: auto; }
-    .key-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
-
-    .key {
-      width: clamp(34px, 4.8vw, 45px);
-      height: 44px;
-      border: 1px solid rgba(255,255,255,.15);
-      border-radius: 14px;
-      color: var(--text);
-      background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.055));
-      cursor: pointer;
-      font-weight: 900;
-      transition: transform .14s ease, filter .14s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .key:active:not(:disabled) { transform: scale(.96); }
-    .key:disabled { opacity: .8; cursor: default; }
-    .key.good { color: #052e16; background: linear-gradient(180deg, #bbf7d0, #86efac); }
-    .key.bad { color: #450a0a; background: linear-gradient(180deg, #fecdd3, #fb7185); }
-
-    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-    .actions .btn:first-child { grid-column: 1 / -1; }
-
-    .btn {
-      min-height: 46px;
-      border: 0;
-      border-radius: 16px;
-      color: #111827;
-      font-weight: 1000;
-      background: linear-gradient(135deg, var(--gold), var(--gold2));
-      cursor: pointer;
-      box-shadow: 0 14px 30px rgba(255,183,3,.2);
-    }
-
-    .btn.secondary {
-      color: var(--text);
-      border: 1px solid rgba(255,255,255,.13);
-      background: rgba(255,255,255,.075);
-      box-shadow: none;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      display: grid;
-      place-items: center;
-      padding: 18px;
-      background: rgba(0,0,0,.52);
-      backdrop-filter: blur(12px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .24s ease;
-    }
-
-    .modal.show { opacity: 1; pointer-events: auto; }
-
-    .modal-box {
-      width: min(470px, 100%);
-      padding: 26px;
-      text-align: center;
-      border-radius: 30px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: radial-gradient(circle at 50% 0%, rgba(255,209,102,.16), transparent 38%), linear-gradient(180deg, rgba(31,41,55,.96), rgba(8,9,20,.96));
-      box-shadow: 0 28px 80px rgba(0,0,0,.45);
-    }
-
-    .modal-icon { font-size: 42px; margin-bottom: 8px; }
-    .modal h2 { margin: 0; font-size: 30px; letter-spacing: -.045em; }
-    .modal p { margin: 10px 0 18px; color: var(--muted); line-height: 1.5; }
-    .answer {
-      display: inline-flex;
-      margin-bottom: 20px;
-      padding: 10px 14px;
-      border-radius: 999px;
-      color: var(--gold);
-      background: rgba(255,209,102,.1);
-      border: 1px solid rgba(255,209,102,.26);
-      font-weight: 1000;
-    }
-
-    .fx { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
-
-    .shake { animation: shake .42s ease; }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-7px); }
-      40% { transform: translateX(7px); }
-      60% { transform: translateX(-4px); }
-      80% { transform: translateX(4px); }
-    }
-
-    @media (max-width: 880px) {
-      .topbar { flex-direction: column; align-items: flex-start; }
-      .stats { width: 100%; }
-      .layout { grid-template-columns: 1fr; }
-      #scene3d { height: 360px; min-height: 360px; }
-      .brand p { display: none; }
-    }
-
-    @media (max-width: 520px) {
-      .app { width: min(100% - 14px, 1180px); padding-top: max(10px, env(safe-area-inset-top)); }
-      .topbar { gap: 10px; }
-      .brand { gap: 10px; }
-      .mark { width: 40px; height: 40px; border-radius: 14px; font-size: 18px; }
-      h1 { font-size: 30px; }
-      .stats { gap: 7px; }
-      .stat { padding: 8px 6px; border-radius: 15px; }
-      .stat b { font-size: 19px; }
-      .stat span { font-size: 9px; }
-      .card { border-radius: 22px; }
-      .scene-head { padding: 14px 14px 0; }
-      .scene-head h2 { font-size: 18px; }
-      .scene-head small { font-size: 12px; }
-      .badge { padding: 7px 9px; font-size: 12px; }
-      #scene3d { height: min(310px, 39svh); min-height: 260px; }
-      .loader-box { width: min(305px, 94%); padding: 17px; border-radius: 22px; }
-      .loader-orb { width: 50px; height: 50px; border-radius: 17px; }
-      .scene-footer { padding: 0 14px 14px; }
-      .debug { margin: 0 14px 14px; border-radius: 18px; }
-      .diag-status { grid-template-columns: 1fr; }
-      .game-card { padding: 14px; gap: 12px; }
-      .hint { min-height: 0; font-size: 14px; }
-      .word { min-height: 82px; padding: 13px 8px; border-radius: 20px; }
-      .slot { width: clamp(27px, 8.2vw, 38px); height: 43px; border-radius: 13px; font-size: clamp(19px, 6vw, 25px); }
-      .slot.hidden::after { bottom: 10px; height: 3px; }
-      .message { padding: 12px; border-radius: 17px; font-size: 14px; }
-      .keyboard { gap: 6px; }
-      .key-row { gap: 5px; }
-      .key { width: calc((100vw - 60px) / 8); max-width: 39px; min-width: 28px; height: 39px; border-radius: 12px; font-size: 14px; }
-      .btn { min-height: 44px; border-radius: 14px; }
-      .log { max-height: 180px; font-size: 10px; }
-    }
-
-    @media (max-width: 380px) {
-      .app { width: min(100% - 10px, 1180px); }
-      .badge { display: none; }
-      #scene3d { height: 250px; min-height: 240px; }
-      .key { width: calc((100vw - 52px) / 8); height: 37px; }
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Портфолио Веб‑разработчика</title>
+    <!--
+      Шрифты подгружаются из Google Fonts. Если вы собираетесь размещать этот
+      сайт в офлайне, загрузите нужные файлы и обновите путь в style.css.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <canvas id="fx" class="fx"></canvas>
-
-  <main class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="mark">3D</div>
-        <div>
-          <h1>Виселица</h1>
-          <p>GitHub Pages версия с диагностикой ошибок прямо на экране.</p>
-        </div>
-      </div>
-      <div class="stats">
-        <div class="stat"><b id="wins">0</b><span>Побед</span></div>
-        <div class="stat"><b id="losses">0</b><span>Поражений</span></div>
-        <div class="stat"><b id="streak">0</b><span>Серия</span></div>
-      </div>
+    <header class="header" id="top">
+        <nav class="container nav">
+            <div class="logo">&lt;/&gt; Dev</div>
+            <button class="nav-toggle" aria-label="Открыть меню">
+                <span class="hamburger"></span>
+            </button>
+            <ul class="nav-links">
+                <li><a href="#home">Главная</a></li>
+                <li><a href="#about">Обо мне</a></li>
+                <li><a href="#skills">Навыки</a></li>
+                <li><a href="#projects">Проекты</a></li>
+                <li><a href="#contact">Контакты</a></li>
+            </ul>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Сменить тему">
+                <!-- иконки солнца и луны отрисовываются через CSS -->
+                <span class="icon"></span>
+            </button>
+        </nav>
     </header>
 
-    <section class="layout">
-      <article class="card scene-card">
-        <div class="scene-head">
-          <div>
-            <h2>Интерактивная 3D-сцена</h2>
-            <small>Вращай пальцем или мышью</small>
-          </div>
-          <div class="badge">Three.js + GLB</div>
-        </div>
-
-        <div id="scene3d">
-          <div class="loading" id="loading">
-            <div class="loader-box">
-              <div class="loader-orb"></div>
-              <h3>Загружаю сцену</h3>
-              <p id="loadText">Проверяю Three.js, WebGL и GLB-модели...</p>
-              <div class="track"><div class="fill" id="loadFill"></div></div>
+    <main>
+        <!-- Геройский блок -->
+        <section id="home" class="hero section hidden">
+            <div class="container hero-content">
+                <h1>Привет, я <span class="highlight">Иван&nbsp;Иванов</span></h1>
+                <h2>Веб‑разработчик и креативный технолог</h2>
+                <p>
+                    Создаю современные, быстрые и удобные веб‑приложения с любовью к чистому
+                    коду, продуманной архитектуре и отличному пользовательскому опыту.
+                </p>
+                <div class="cta">
+                    <a href="#contact" class="btn primary">Связаться со мной</a>
+                    <a href="resume.pdf" class="btn secondary" download>Скачать&nbsp;резюме</a>
+                </div>
+                <div class="socials">
+                    <!-- Email -->
+                    <a href="mailto:your@email.com" aria-label="Email" class="social-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 4H4C2.897 4 2 4.897 2 6V18C2 19.103 2.897 20 4 20H20C21.103 20 22 19.103 22 18V6C22 4.897 21.103 4 20 4ZM20 6L12 11L4 6H20ZM4 18V8L12 13L20 8V18H4Z" />
+                        </svg>
+                    </a>
+                    <!-- GitHub -->
+                    <a href="https://github.com/username" target="_blank" rel="noopener" aria-label="GitHub" class="social-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 0.297C5.373 0.297 0 5.67 0 12.297C0 17.599 3.438 22.098 8.205 23.683C8.805 23.796 9.025 23.425 9.025 23.106C9.025 22.821 9.015 22.066 9.009 21.066C5.671 21.79 4.967 19.456 4.967 19.456C4.421 18.069 3.634 17.699 3.634 17.699C2.547 16.955 3.718 16.97 3.718 16.97C4.923 17.054 5.558 18.205 5.558 18.205C6.628 20.04 8.367 19.51 9.053 19.203C9.161 18.428 9.471 17.898 9.815 17.598C7.15 17.292 4.349 16.266 4.349 11.667C4.349 10.357 4.818 9.286 5.585 8.446C5.461 8.143 5.049 6.923 5.702 5.27C5.702 5.27 6.71 4.948 9.003 6.5C9.96 6.234 10.986 6.101 12.006 6.096C13.026 6.101 14.053 6.234 15.01 6.5C17.299 4.948 18.304 5.27 18.304 5.27C18.96 6.923 18.548 8.143 18.424 8.446C19.193 9.286 19.659 10.357 19.659 11.667C19.659 16.279 16.852 17.286 14.182 17.586C14.607 17.956 15.003 18.665 15.003 19.729C15.003 21.261 14.988 22.611 14.988 23.106C14.988 23.425 15.205 23.8 15.815 23.683C20.584 22.097 24 17.598 24 12.297C24 5.67 18.627 0.297 12 0.297Z"/>
+                        </svg>
+                    </a>
+                    <!-- LinkedIn -->
+                    <a href="https://linkedin.com/in/username" target="_blank" rel="noopener" aria-label="LinkedIn" class="social-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 0H5C2.238 0 0 2.238 0 5V19C0 21.762 2.238 24 5 24H19C21.762 24 24 21.762 24 19V5C24 2.238 21.762 0 19 0ZM7.339 20.454H3.539V9H7.339V20.454ZM5.439 7.454C4.058 7.454 2.939 6.335 2.939 4.954C2.939 3.573 4.058 2.454 5.439 2.454C6.82 2.454 7.939 3.573 7.939 4.954C7.939 6.335 6.82 7.454 5.439 7.454ZM20.454 20.454H16.659V14.454C16.659 13.114 16.639 11.384 14.843 11.384C13.028 11.384 12.728 12.914 12.728 14.353V20.454H8.939V9H12.599V10.626H12.659C13.159 9.616 14.539 8.546 16.548 8.546C20.378 8.546 20.454 11.046 20.454 14.056V20.454Z" />
+                        </svg>
+                    </a>
+                </div>
             </div>
-          </div>
-        </div>
+        </section>
 
-        <div class="scene-footer">
-          <div class="risk-row">
-            <span>Ошибки: <strong id="failsText">0</strong> / 6</span>
-            <span id="stageText">Сцена спокойна</span>
-          </div>
-          <div class="risk-track"><div class="risk-fill"></div></div>
-        </div>
-
-        <details class="debug" id="debugPanel">
-          <summary>
-            <span>Диагностика загрузки</span>
-            <span id="debugState">проверка...</span>
-          </summary>
-          <div class="debug-body">
-            <div class="diag-status">
-              <div class="diag-pill warn" id="threeStatus"><b>Three.js</b><span>проверяется</span></div>
-              <div class="diag-pill warn" id="webglStatus"><b>WebGL</b><span>проверяется</span></div>
-              <div class="diag-pill warn" id="gallowsStatus"><b>Gallows.glb</b><span>проверяется</span></div>
-              <div class="diag-pill warn" id="humanStatus"><b>peasant.glb</b><span>проверяется</span></div>
+        <!-- Обо мне -->
+        <section id="about" class="about section hidden">
+            <div class="container">
+                <h3 class="section-title">Обо мне</h3>
+                <div class="about-grid">
+                    <div class="about-text">
+                        <p>
+                            Привет! Меня зовут Иван, я занимаюсь разработкой веб‑приложений более
+                            пяти лет. Начинал с простых сайтов на HTML и CSS, а сегодня разрабатываю
+                            сложные системы на JavaScript, TypeScript, React и Node.js. Мне нравится
+                            создавать чистую и поддерживаемую архитектуру, писать понятный код и
+                            обеспечивать высокую производительность.
+                        </p>
+                        <p>
+                            В свободное время изучаю новые технологии, участвую в open source
+                            проектах и делюсь опытом на митапах. Я убежден, что качественный
+                            пользовательский интерфейс и грамотная техническая реализация идут
+                            рука об руку.
+                        </p>
+                    </div>
+                    <div class="about-info">
+                        <ul>
+                            <li><strong>Опыт:</strong> 5+ лет</li>
+                            <li><strong>Локация:</strong> Роттердам, Нидерланды</li>
+                            <li><strong>Специализация:</strong> Full‑stack (React, Node.js)</li>
+                            <li><strong>Интересы:</strong> UI/UX, PWA, Three.js, AI</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <div class="debug-actions">
-              <button class="mini-btn" id="copyDebug" type="button">Скопировать ошибки</button>
-              <button class="mini-btn" id="reloadPage" type="button">Перезагрузить</button>
-              <button class="mini-btn" id="openModels" type="button">Проверить ссылки моделей</button>
+        </section>
+
+        <!-- Навыки -->
+        <section id="skills" class="skills section hidden">
+            <div class="container">
+                <h3 class="section-title">Навыки</h3>
+                <div class="skills-grid">
+                    <div class="skill-item">
+                        <span class="skill-name">HTML</span>
+                        <div class="skill-bar">
+                            <div class="skill-progress" data-progress="95"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="skill-name">CSS</span>
+                        <div class="skill-bar">
+                            <div class="skill-progress" data-progress="90"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="skill-name">JavaScript</span>
+                        <div class="skill-bar">
+                            <div class="skill-progress" data-progress="92"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="skill-name">TypeScript</span>
+                        <div class="skill-bar">
+                            <div class="skill-progress" data-progress="85"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="skill-name">React</span>
+                        <div class="skill-bar">
+                            <div class="skill-progress" data-progress="93"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="skill-name">Next.js</span>
+                        <div class="skill-bar">
+                            <div class="skill-progress" data-progress="80"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="skill-name">Node.js</span>
+                        <div class="skill-bar">
+                            <div class="skill-progress" data-progress="88"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="skill-name">Git</span>
+                        <div class="skill-bar">
+                            <div class="skill-progress" data-progress="90"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <pre class="log" id="debugLog"></pre>
-          </div>
-        </details>
-      </article>
+        </section>
 
-      <article class="card game-card" id="gameCard">
-        <div>
-          <div class="category" id="category">Категория</div>
-          <p class="hint" id="hint">Подсказка появится здесь.</p>
+        <!-- Проекты -->
+        <section id="projects" class="projects section hidden">
+            <div class="container">
+                <h3 class="section-title">Проекты</h3>
+                <div class="projects-grid">
+                    <!-- Card 1 -->
+                    <article class="project-card">
+                        <div class="project-image">
+                            <img src="assets/placeholder.png" alt="Снимок проекта Dashboard" />
+                        </div>
+                        <div class="project-content">
+                            <h4>Админ панель</h4>
+                            <p>Многостраничная панель управления с графиками, таблицами и аутентификацией. Реализовано на React, TypeScript и Material&nbsp;UI.</p>
+                            <ul class="project-tags">
+                                <li>React</li>
+                                <li>TypeScript</li>
+                                <li>Material UI</li>
+                            </ul>
+                            <a href="https://github.com/username/admin-dashboard" target="_blank" rel="noopener" class="project-link">Смотреть на GitHub →</a>
+                        </div>
+                    </article>
+                    <!-- Card 2 -->
+                    <article class="project-card">
+                        <div class="project-image">
+                            <img src="assets/placeholder.png" alt="Снимок проекта Landing Page" />
+                        </div>
+                        <div class="project-content">
+                            <h4>Маркетинговый лендинг</h4>
+                            <p>Адаптивный лендинг для продукта, оптимизированный под SEO и высокую скорость загрузки. Использован Next.js и Tailwind CSS.</p>
+                            <ul class="project-tags">
+                                <li>Next.js</li>
+                                <li>Tailwind CSS</li>
+                                <li>SEO</li>
+                            </ul>
+                            <a href="https://github.com/username/marketing-landing" target="_blank" rel="noopener" class="project-link">Смотреть на GitHub →</a>
+                        </div>
+                    </article>
+                    <!-- Card 3 -->
+                    <article class="project-card">
+                        <div class="project-image">
+                            <img src="assets/placeholder.png" alt="Снимок проекта ToDo App" />
+                        </div>
+                        <div class="project-content">
+                            <h4>Приложение задач</h4>
+                            <p>Простой менеджер задач с авторизацией и синхронизацией между устройствами. Используются PWA технологии и IndexedDB.</p>
+                            <ul class="project-tags">
+                                <li>PWA</li>
+                                <li>React</li>
+                                <li>IndexedDB</li>
+                            </ul>
+                            <a href="https://github.com/username/todo-app" target="_blank" rel="noopener" class="project-link">Смотреть на GitHub →</a>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Контакты -->
+        <section id="contact" class="contact section hidden">
+            <div class="container">
+                <h3 class="section-title">Контакты</h3>
+                <p class="contact-intro">Буду рад обсудить ваш проект или просто пообщаться. Заполните форму ниже, и я свяжусь с вами в ближайшее время.</p>
+                <form id="contact-form" class="contact-form" novalidate>
+                    <div class="form-group">
+                        <label for="name">Имя</label>
+                        <input type="text" id="name" name="name" required />
+                        <span class="error-message">Введите ваше имя.</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required />
+                        <span class="error-message">Введите корректный email.</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Сообщение</label>
+                        <textarea id="message" name="message" rows="5" required></textarea>
+                        <span class="error-message">Сообщение не может быть пустым.</span>
+                    </div>
+                    <button type="submit" class="btn primary submit-btn">Отправить</button>
+                    <p id="form-status" class="form-status" role="alert" aria-live="assertive"></p>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; <span id="year"></span> Иван&nbsp;Иванов. Все права защищены.</p>
+            <p>Сделано с <span aria-label="сердце">❤️</span> и кодом</p>
         </div>
+    </footer>
 
-        <div class="modes" id="modes">
-          <button class="chip active" data-mode="easy">Легко</button>
-          <button class="chip" data-mode="normal">Нормально</button>
-          <button class="chip" data-mode="hard">Сложно</button>
-        </div>
-
-        <div class="word" id="word"></div>
-        <div class="message" id="message"><strong>Правило:</strong> угадай слово, пока не накопилось 6 ошибок.</div>
-        <div class="keyboard" id="keyboard"></div>
-
-        <div class="actions">
-          <button class="btn" id="newGame">Новая игра</button>
-          <button class="btn secondary" id="showHint">Подсказка</button>
-          <button class="btn secondary" id="resetStats">Сброс</button>
-        </div>
-      </article>
-    </section>
-  </main>
-
-  <div class="modal" id="modal">
-    <div class="modal-box">
-      <div class="modal-icon" id="modalIcon">🏆</div>
-      <h2 id="modalTitle">Победа!</h2>
-      <p id="modalText">Ты угадал слово.</p>
-      <div class="answer" id="modalAnswer">СЛОВО</div><br />
-      <button class="btn" id="playAgain">Играть ещё</button>
-    </div>
-  </div>
-
-  <script type="module">
-    const MODEL_URLS = {
-      gallows: "./models/Gallows.glb",
-      human: "./models/peasant.glb"
-    };
-
-    const WORDS = [
-      { word: "АЛГОРИТМ", category: "Технологии", hint: "Пошаговая схема решения задачи." },
-      { word: "ИНТЕРФЕЙС", category: "Дизайн", hint: "Через него человек управляет программой." },
-      { word: "КОМПИЛЯТОР", category: "Программирование", hint: "Превращает код в другую форму, понятную машине." },
-      { word: "АРХИТЕКТУРА", category: "Разработка", hint: "Главная структура системы и связи между частями." },
-      { word: "ПРОТОТИП", category: "Продукт", hint: "Ранняя версия идеи для быстрой проверки." },
-      { word: "НЕЙРОСЕТЬ", category: "ИИ", hint: "Модель, обучающаяся на данных." },
-      { word: "ОПТИМИЗАЦИЯ", category: "Инженерия", hint: "Улучшение скорости, качества или расхода ресурсов." },
-      { word: "АНИМАЦИЯ", category: "Графика", hint: "Создаёт ощущение движения." },
-      { word: "ПЕРЕМЕННАЯ", category: "JavaScript", hint: "Именованное место для хранения значения." },
-      { word: "КОМПОНЕНТ", category: "Frontend", hint: "Самостоятельный блок интерфейса." },
-      { word: "БРАУЗЕР", category: "Web", hint: "Программа, которая открывает сайты." },
-      { word: "СЕРВЕР", category: "Интернет", hint: "Обрабатывает запросы и отдаёт данные." },
-      { word: "ФУНКЦИЯ", category: "Код", hint: "Переиспользуемый блок логики." },
-      { word: "ГОЛОГРАММА", category: "Фантастика", hint: "Объёмное световое изображение." },
-      { word: "РЕНДЕРИНГ", category: "3D", hint: "Процесс построения итоговой картинки из сцены." },
-      { word: "ТЕКСТУРА", category: "3D", hint: "Картинка, нанесённая на поверхность модели." },
-      { word: "ПОЛИГОН", category: "3D", hint: "Грань, из которой строится поверхность модели." },
-      { word: "КЛАВИАТУРА", category: "Устройство", hint: "С неё вводят буквы." },
-      { word: "ПРОГРАММИСТ", category: "Профессия", hint: "Создаёт логику, сайты, приложения и игры." }
-    ];
-
-    const ROWS = ["ЙЦУКЕНГШЩЗХЪ", "ФЫВАПРОЛДЖЭ", "ЯЧСМИТЬБЮЁ"];
-    const MAX_FAILS = 6;
-    const KEYBOARD_MAP = {
-      q: "Й", w: "Ц", e: "У", r: "К", t: "Е", y: "Н", u: "Г", i: "Ш", o: "Щ", p: "З", "[": "Х", "]": "Ъ",
-      a: "Ф", s: "Ы", d: "В", f: "А", g: "П", h: "Р", j: "О", k: "Л", l: "Д", ";": "Ж", "'": "Э",
-      z: "Я", x: "Ч", c: "С", v: "М", b: "И", n: "Т", m: "Ь", ",": "Б", ".": "Ю", "`": "Ё"
-    };
-
-    const $ = id => document.getElementById(id);
-    const els = {
-      scene3d: $("scene3d"), loading: $("loading"), loadText: $("loadText"), loadFill: $("loadFill"),
-      debugPanel: $("debugPanel"), debugLog: $("debugLog"), debugState: $("debugState"),
-      threeStatus: $("threeStatus"), webglStatus: $("webglStatus"), gallowsStatus: $("gallowsStatus"), humanStatus: $("humanStatus"),
-      copyDebug: $("copyDebug"), reloadPage: $("reloadPage"), openModels: $("openModels"),
-      word: $("word"), keyboard: $("keyboard"), category: $("category"), hint: $("hint"), message: $("message"),
-      failsText: $("failsText"), stageText: $("stageText"), gameCard: $("gameCard"), wins: $("wins"), losses: $("losses"), streak: $("streak"),
-      modes: $("modes"), newGame: $("newGame"), showHint: $("showHint"), resetStats: $("resetStats"),
-      modal: $("modal"), modalIcon: $("modalIcon"), modalTitle: $("modalTitle"), modalText: $("modalText"), modalAnswer: $("modalAnswer"), playAgain: $("playAgain"),
-      fx: $("fx")
-    };
-
-    const diag = (() => {
-      const lines = [];
-      const startedAt = new Date();
-      const asText = value => {
-        if (value instanceof Error) return `${value.name}: ${value.message}\n${value.stack || ""}`;
-        if (typeof value === "string") return value;
-        try { return JSON.stringify(value, null, 2); } catch { return String(value); }
-      };
-      const write = (type, ...items) => {
-        const stamp = new Date().toLocaleTimeString("ru-RU", { hour12: false });
-        const line = `[${stamp}] ${type}: ${items.map(asText).join(" ")}`;
-        lines.push(line);
-        els.debugLog.textContent = lines.join("\n");
-        els.debugLog.scrollTop = els.debugLog.scrollHeight;
-        if (["ERROR", "UNHANDLED", "MODEL-ERROR", "THREE-ERROR"].includes(type)) {
-          els.debugPanel.open = true;
-          els.debugState.textContent = "есть ошибка";
-        }
-      };
-      const status = (el, state, title, text) => {
-        el.classList.remove("ok", "bad", "warn");
-        el.classList.add(state);
-        el.innerHTML = `<b>${title}</b><span>${text}</span>`;
-      };
-      const collect = () => [
-        `URL: ${location.href}`,
-        `Started: ${startedAt.toISOString()}`,
-        `UserAgent: ${navigator.userAgent}`,
-        `Viewport: ${innerWidth}x${innerHeight}, DPR ${devicePixelRatio || 1}`,
-        `Online: ${navigator.onLine}`,
-        "",
-        lines.join("\n")
-      ].join("\n");
-      return { write, status, collect };
-    })();
-
-    window.addEventListener("error", event => {
-      diag.write("ERROR", event.message || "window error", event.filename ? `${event.filename}:${event.lineno}:${event.colno}` : "", event.error || "");
-    });
-    window.addEventListener("unhandledrejection", event => {
-      diag.write("UNHANDLED", event.reason || "unhandled promise rejection");
-    });
-
-    diag.write("INFO", "Страница открыта", location.href);
-    diag.write("INFO", navigator.userAgent);
-
-    function setLoading(progress, text) {
-      els.loadFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
-      els.loadText.textContent = text;
-    }
-
-    function checkWebGL() {
-      try {
-        const canvas = document.createElement("canvas");
-        const gl = canvas.getContext("webgl2") || canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        if (!gl) {
-          diag.status(els.webglStatus, "bad", "WebGL", "недоступен в браузере");
-          diag.write("ERROR", "WebGL context is null");
-          return false;
-        }
-        const renderer = gl.getParameter(gl.RENDERER) || "unknown";
-        const version = gl.getParameter(gl.VERSION) || "unknown";
-        diag.status(els.webglStatus, "ok", "WebGL", "доступен");
-        diag.write("WEBGL", version, renderer);
-        return true;
-      } catch (error) {
-        diag.status(els.webglStatus, "bad", "WebGL", "ошибка проверки");
-        diag.write("ERROR", error);
-        return false;
-      }
-    }
-
-    async function probeAsset(label, url, statusEl) {
-      const absolute = new URL(url, location.href).href;
-      diag.write("ASSET", `${label}: ${absolute}`);
-      try {
-        const response = await fetch(url, { cache: "no-store" });
-        const contentType = response.headers.get("content-type") || "без content-type";
-        const length = response.headers.get("content-length") || "неизвестно";
-        if (!response.ok) {
-          diag.status(statusEl, "bad", label, `HTTP ${response.status}`);
-          diag.write("MODEL-ERROR", `${label}: HTTP ${response.status}`, contentType, `bytes=${length}`);
-          return false;
-        }
-        const clone = response.clone();
-        const buffer = await clone.arrayBuffer();
-        const signature = new TextDecoder().decode(buffer.slice(0, 4));
-        const mb = (buffer.byteLength / 1024 / 1024).toFixed(2);
-        const looksGlb = signature === "glTF";
-        diag.status(statusEl, looksGlb ? "ok" : "warn", label, `${mb} МБ, ${looksGlb ? "GLB OK" : "не GLB?"}`);
-        diag.write("ASSET", `${label}: HTTP ${response.status}, ${mb} MB, ${contentType}, signature=${JSON.stringify(signature)}`);
-        if (!looksGlb) diag.write("MODEL-ERROR", `${label}: файл доступен, но первые 4 байта не glTF. Возможно, GitHub Pages отдаёт HTML/404 вместо GLB.`);
-        return looksGlb;
-      } catch (error) {
-        diag.status(statusEl, "bad", label, "fetch error");
-        diag.write("MODEL-ERROR", `${label}: fetch failed`, error);
-        return false;
-      }
-    }
-
-    async function importThreeBundle() {
-      setLoading(15, "Проверяю WebGL...");
-      checkWebGL();
-      setLoading(24, "Подключаю Three.js...");
-      try {
-        const [THREE, loaderMod, controlsMod] = await Promise.all([
-          import("three"),
-          import("three/addons/loaders/GLTFLoader.js"),
-          import("three/addons/controls/OrbitControls.js")
-        ]);
-        diag.status(els.threeStatus, "ok", "Three.js", "importmap/jsDelivr OK");
-        diag.write("THREE", `Loaded via importmap`, `REVISION=${THREE.REVISION}`);
-        return { THREE, GLTFLoader: loaderMod.GLTFLoader, OrbitControls: controlsMod.OrbitControls, source: "importmap/jsDelivr" };
-      } catch (firstError) {
-        diag.status(els.threeStatus, "warn", "Three.js", "importmap failed, пробую esm.sh");
-        diag.write("THREE-ERROR", "importmap/jsDelivr failed", firstError);
-      }
-
-      try {
-        const [THREE, loaderMod, controlsMod] = await Promise.all([
-          import("https://esm.sh/three@0.165.0"),
-          import("https://esm.sh/three@0.165.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.165.0"),
-          import("https://esm.sh/three@0.165.0/examples/jsm/controls/OrbitControls.js?deps=three@0.165.0")
-        ]);
-        diag.status(els.threeStatus, "ok", "Three.js", "esm.sh fallback OK");
-        diag.write("THREE", `Loaded via esm.sh`, `REVISION=${THREE.REVISION}`);
-        return { THREE, GLTFLoader: loaderMod.GLTFLoader, OrbitControls: controlsMod.OrbitControls, source: "esm.sh" };
-      } catch (secondError) {
-        diag.status(els.threeStatus, "bad", "Three.js", "не загрузился");
-        diag.write("THREE-ERROR", "esm.sh fallback failed", secondError);
-        throw secondError;
-      }
-    }
-
-    class ThreeHangmanScene {
-      constructor(bundle, container) {
-        this.THREE = bundle.THREE;
-        this.GLTFLoader = bundle.GLTFLoader;
-        this.OrbitControls = bundle.OrbitControls;
-        this.container = container;
-        this.clock = new this.THREE.Clock();
-        this.failStage = 0;
-        this.targetFailStage = 0;
-        this.humanMaterials = [];
-        this.gallows = null;
-        this.human = null;
-        this.humanRig = new this.THREE.Group();
-        this.fxGroup = new this.THREE.Group();
-        this.rings = [];
-        this.shake = 0;
-        this.endState = null;
-        this.ready = false;
-        this.init();
-      }
-
-      init() {
-        const THREE = this.THREE;
-        this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.FogExp2(0x070812, 0.04);
-        this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-        this.camera.position.set(4.8, 3.1, 6.7);
-
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-        this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.08;
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        this.container.appendChild(this.renderer.domElement);
-        diag.write("THREE", "Renderer canvas inserted");
-
-        this.controls = new this.OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.065;
-        this.controls.target.set(0, 1.62, 0);
-        this.controls.minDistance = 3.4;
-        this.controls.maxDistance = 10;
-        this.controls.minPolarAngle = Math.PI * .16;
-        this.controls.maxPolarAngle = Math.PI * .49;
-
-        this.buildLights();
-        this.buildEnvironment();
-        this.buildRopeAndRings();
-        this.scene.add(this.humanRig, this.fxGroup);
-        window.addEventListener("resize", () => this.resize());
-        this.resize();
-        this.animate();
-      }
-
-      buildLights() {
-        const THREE = this.THREE;
-        this.scene.add(new THREE.HemisphereLight(0x9bdcff, 0x141018, 1.25));
-        const key = new THREE.DirectionalLight(0xffffff, 2.15);
-        key.position.set(4, 6, 4);
-        key.castShadow = true;
-        key.shadow.mapSize.set(1536, 1536);
-        key.shadow.camera.left = -8;
-        key.shadow.camera.right = 8;
-        key.shadow.camera.top = 8;
-        key.shadow.camera.bottom = -8;
-        this.scene.add(key);
-        this.cyanLight = new THREE.PointLight(0x67e8f9, 3, 7);
-        this.cyanLight.position.set(-2.6, 2.8, 2.6);
-        this.scene.add(this.cyanLight);
-        this.goldLight = new THREE.PointLight(0xffd166, 2.2, 6);
-        this.goldLight.position.set(2.8, 1.7, -1.7);
-        this.scene.add(this.goldLight);
-        this.failLight = new THREE.PointLight(0xfb7185, 0, 6);
-        this.failLight.position.set(.7, 2.25, 1.15);
-        this.scene.add(this.failLight);
-        this.spot = new THREE.SpotLight(0xfff3c4, 5, 9, Math.PI * .18, .45, 1.2);
-        this.spot.position.set(.7, 5.8, 1.3);
-        this.spot.target.position.set(.7, 1.2, .05);
-        this.spot.castShadow = true;
-        this.scene.add(this.spot, this.spot.target);
-      }
-
-      buildEnvironment() {
-        const THREE = this.THREE;
-        const floor = new THREE.Mesh(
-          new THREE.CircleGeometry(5.8, 96),
-          new THREE.MeshStandardMaterial({ color: 0x101827, roughness: .88, metalness: .05 })
-        );
-        floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
-        this.scene.add(floor);
-
-        const grid = new THREE.GridHelper(10, 26, 0x67e8f9, 0x334155);
-        grid.position.y = .012;
-        grid.material.transparent = true;
-        grid.material.opacity = .16;
-        this.scene.add(grid);
-
-        const halo = new THREE.Mesh(
-          new THREE.TorusGeometry(2.7, .012, 8, 140),
-          new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: .14 })
-        );
-        halo.position.set(.3, 2.05, -1.9);
-        this.fxGroup.add(halo);
-        this.halo = halo;
-
-        for (let i = 0; i < 46; i++) {
-          const star = new THREE.Mesh(
-            new THREE.SphereGeometry(Math.random() * .014 + .007, 8, 8),
-            new THREE.MeshBasicMaterial({ color: Math.random() > .5 ? 0x67e8f9 : 0xffd166, transparent: true, opacity: .45 })
-          );
-          star.position.set((Math.random() - .5) * 9, Math.random() * 4 + 1.2, -2.4 - Math.random() * 2);
-          this.fxGroup.add(star);
-        }
-      }
-
-      buildRopeAndRings() {
-        const THREE = this.THREE;
-        const ropeMat = new THREE.MeshStandardMaterial({ color: 0xc69c55, roughness: .84 });
-        const rope = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, 1.15, 18), ropeMat);
-        rope.position.set(.72, 2.78, .03);
-        rope.castShadow = true;
-        this.fxGroup.add(rope);
-        const knot = new THREE.Mesh(new THREE.TorusGeometry(.18, .032, 14, 42), ropeMat);
-        knot.position.set(.72, 2.18, .03);
-        knot.rotation.x = Math.PI / 2;
-        knot.castShadow = true;
-        this.fxGroup.add(knot);
-        for (let i = 0; i < MAX_FAILS; i++) {
-          const mat = new THREE.MeshBasicMaterial({ color: i < 3 ? 0x67e8f9 : 0xfb7185, transparent: true, opacity: 0 });
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(.72 + i * .035, .009, 8, 96), mat);
-          ring.position.set(.72, 1.38 + i * .14, .02);
-          ring.rotation.x = Math.PI / 2;
-          ring.scale.setScalar(.2);
-          this.rings.push(ring);
-          this.fxGroup.add(ring);
-        }
-      }
-
-      async loadModels() {
-        const THREE = this.THREE;
-        const loader = new this.GLTFLoader();
-        const load = url => new Promise((resolve, reject) => {
-          loader.load(url, resolve, progress => {
-            if (progress.lengthComputable) {
-              const percent = Math.round((progress.loaded / progress.total) * 100);
-              diag.write("GLB-PROGRESS", `${url}: ${percent}%`);
-            }
-          }, reject);
-        });
-
-        setLoading(55, "Загружаю GLB-модели...");
-        const gallowsPromise = load(MODEL_URLS.gallows).then(gltf => ({ ok: true, gltf })).catch(error => ({ ok: false, error }));
-        const humanPromise = load(MODEL_URLS.human).then(gltf => ({ ok: true, gltf })).catch(error => ({ ok: false, error }));
-        const [gallowsResult, humanResult] = await Promise.all([gallowsPromise, humanPromise]);
-
-        if (gallowsResult.ok) {
-          this.gallows = gallowsResult.gltf.scene;
-          this.prepareModel(this.gallows, { targetHeight: 4.55, shadow: true });
-          this.gallows.position.set(-.44, 0, -.08);
-          this.gallows.rotation.y = -Math.PI * .06;
-          this.scene.add(this.gallows);
-          diag.write("GLB", "Gallows loaded", this.describeObject(this.gallows));
-        } else {
-          diag.status(els.gallowsStatus, "bad", "Gallows.glb", "GLTFLoader error");
-          diag.write("MODEL-ERROR", "GLTFLoader failed for Gallows.glb", gallowsResult.error);
-        }
-
-        if (humanResult.ok) {
-          this.human = humanResult.gltf.scene;
-          this.prepareModel(this.human, { targetHeight: 2.14, shadow: true, transparent: true });
-          this.human.rotation.y = Math.PI;
-          this.humanRig.add(this.human);
-          this.humanRig.position.set(.72, .06, .17);
-          this.humanRig.scale.setScalar(.86);
-          this.setHumanOpacity(0);
-          diag.write("GLB", "Peasant loaded", this.describeObject(this.human));
-        } else {
-          diag.status(els.humanStatus, "bad", "peasant.glb", "GLTFLoader error");
-          diag.write("MODEL-ERROR", "GLTFLoader failed for peasant.glb", humanResult.error);
-        }
-
-        if (!this.gallows || !this.human) {
-          this.buildFallbackModels();
-          els.debugPanel.open = true;
-          els.debugState.textContent = "GLB не загрузились";
-          els.message.innerHTML = "<strong>Диагностика:</strong> часть GLB не загрузилась. Игра работает на резервной 3D-сцене, ошибки смотри в блоке диагностики.";
-        } else {
-          els.debugState.textContent = "модели OK";
-        }
-
-        this.ready = true;
-        this.resetRound();
-        return true;
-      }
-
-      describeObject(object) {
-        let meshes = 0;
-        let materials = 0;
-        object.traverse(node => { if (node.isMesh) { meshes++; if (node.material) materials++; } });
-        const box = new this.THREE.Box3().setFromObject(object);
-        const size = box.getSize(new this.THREE.Vector3());
-        return { meshes, materials, size: { x: +size.x.toFixed(3), y: +size.y.toFixed(3), z: +size.z.toFixed(3) } };
-      }
-
-      prepareModel(object, options = {}) {
-        const THREE = this.THREE;
-        const { targetHeight = 2, shadow = true, transparent = false } = options;
-        object.updateMatrixWorld(true);
-        let box = new THREE.Box3().setFromObject(object);
-        const size = box.getSize(new THREE.Vector3());
-        const height = Math.max(size.y || 1, .0001);
-        const scale = targetHeight / height;
-        object.scale.multiplyScalar(scale);
-        object.updateMatrixWorld(true);
-        box = new THREE.Box3().setFromObject(object);
-        const center = box.getCenter(new THREE.Vector3());
-        object.position.sub(center);
-        object.updateMatrixWorld(true);
-        box = new THREE.Box3().setFromObject(object);
-        object.position.y -= box.min.y;
-        object.traverse(node => {
-          if (!node.isMesh) return;
-          node.castShadow = shadow;
-          node.receiveShadow = shadow;
-          if (node.material) {
-            node.material = node.material.clone();
-            node.material.side = THREE.DoubleSide;
-            if (transparent) {
-              node.material.transparent = true;
-              node.material.opacity = 0;
-              node.material.depthWrite = false;
-              this.humanMaterials.push(node.material);
-            }
-          }
-        });
-      }
-
-      buildFallbackModels() {
-        const THREE = this.THREE;
-        if (!this.gallows) {
-          const wood = new THREE.MeshStandardMaterial({ color: 0x9a6738, roughness: .78 });
-          this.gallows = new THREE.Group();
-          const parts = [
-            [new THREE.BoxGeometry(2.2, .18, .36), [-.25, .09, 0], [0,0,0]],
-            [new THREE.BoxGeometry(.18, 3.5, .18), [-1.1, 1.75, 0], [0,0,0]],
-            [new THREE.BoxGeometry(1.95, .18, .18), [-.22, 3.42, 0], [0,0,0]],
-            [new THREE.BoxGeometry(1.15, .14, .14), [-.72, 3.05, 0], [0,0,-.72]]
-          ];
-          for (const [geo, pos, rot] of parts) {
-            const mesh = new THREE.Mesh(geo, wood);
-            mesh.position.set(...pos);
-            mesh.rotation.set(...rot);
-            mesh.castShadow = mesh.receiveShadow = true;
-            this.gallows.add(mesh);
-          }
-          this.scene.add(this.gallows);
-        }
-        if (!this.human) {
-          const mat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, roughness: .58, transparent: true, opacity: 0 });
-          this.human = new THREE.Group();
-          const head = new THREE.Mesh(new THREE.SphereGeometry(.22, 24, 24), mat.clone());
-          head.position.y = 1.8;
-          const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.16, .7, 8, 18), mat.clone());
-          torso.position.y = 1.18;
-          this.human.add(head, torso);
-          this.human.traverse(o => { if (o.isMesh) { o.castShadow = true; this.humanMaterials.push(o.material); } });
-          this.humanRig.add(this.human);
-          this.humanRig.position.set(.72, .06, .17);
-        }
-      }
-
-      setHumanOpacity(value) {
-        for (const mat of this.humanMaterials) {
-          mat.opacity = value;
-          mat.transparent = value < 1;
-          mat.depthWrite = value > .55;
-          mat.needsUpdate = true;
-        }
-      }
-
-      setFailStage(stage, immediate = false) {
-        this.targetFailStage = this.THREE.MathUtils.clamp(stage, 0, MAX_FAILS);
-        if (immediate) this.failStage = this.targetFailStage;
-        if (stage > this.failStage) this.shake = Math.max(this.shake, .16);
-      }
-
-      setRoundState(type) {
-        this.endState = type;
-        if (type === "win") {
-          this.failLight.intensity = 0;
-          this.cyanLight.intensity = 4;
-        }
-        if (type === "lose") this.failLight.intensity = 5.8;
-      }
-
-      resetRound() {
-        this.endState = null;
-        this.targetFailStage = 0;
-        this.failStage = 0;
-        this.shake = 0;
-        this.setHumanOpacity(0);
-        this.humanRig.position.set(.72, .06, .17);
-        this.humanRig.rotation.set(0, 0, 0);
-        this.humanRig.scale.setScalar(.86);
-        this.failLight.intensity = 0;
-      }
-
-      resize() {
-        const w = Math.max(this.container.clientWidth, 1);
-        const h = Math.max(this.container.clientHeight, 1);
-        this.camera.aspect = w / h;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(w, h, false);
-      }
-
-      animate() {
-        requestAnimationFrame(() => this.animate());
-        const THREE = this.THREE;
-        const delta = this.clock.getDelta();
-        const t = this.clock.elapsedTime;
-        this.controls.update();
-        this.failStage = THREE.MathUtils.lerp(this.failStage, this.targetFailStage, 1 - Math.pow(.001, delta));
-        const f = this.failStage;
-        const n = f / MAX_FAILS;
-        const opacity = this.endState === "win" ? .62 : Math.min(1, n * 1.22);
-        this.setHumanOpacity(opacity);
-        const swing = Math.sin(t * (1.25 + n * 1.65)) * n * .14;
-        this.humanRig.position.y = THREE.MathUtils.lerp(this.humanRig.position.y, .06 + n * .06 + (this.endState === "win" ? Math.sin(t * 2.2) * .045 : 0), .08);
-        this.humanRig.position.z = THREE.MathUtils.lerp(this.humanRig.position.z, .34 - n * .17, .08);
-        this.humanRig.scale.setScalar(THREE.MathUtils.lerp(this.humanRig.scale.x, .86 + n * .17, .08));
-        this.humanRig.rotation.z = swing + (this.endState === "lose" ? .22 : 0);
-        this.humanRig.rotation.x = Math.sin(t * 1.3) * n * .035;
-        for (let i = 0; i < this.rings.length; i++) {
-          const ring = this.rings[i];
-          const visible = f > i + .08;
-          const progress = THREE.MathUtils.clamp(f - i, 0, 1);
-          ring.material.opacity = THREE.MathUtils.lerp(ring.material.opacity, visible ? .13 + progress * .32 : 0, .09);
-          ring.scale.setScalar(THREE.MathUtils.lerp(ring.scale.x, visible ? 1 + Math.sin(t * 2.6 + i) * .035 : .2, .1));
-          ring.rotation.z += delta * (.35 + i * .05);
-        }
-        if (this.halo) {
-          this.halo.rotation.z = t * .07;
-          this.halo.material.opacity = .11 + Math.sin(t * 1.5) * .035;
-        }
-        if (this.gallows) this.gallows.rotation.z = Math.sin(t * .9) * .004;
-        this.failLight.intensity = THREE.MathUtils.lerp(this.failLight.intensity, this.endState === "lose" ? 6 : n * 3.2, .06);
-        this.failLight.position.y = 1.8 + Math.sin(t * 2.2) * .18;
-        this.goldLight.intensity = 1.8 + Math.sin(t * 1.1) * .25;
-        this.cyanLight.intensity = this.endState === "win" ? 4.3 + Math.sin(t * 3) * .4 : 2.4 + Math.sin(t * .9) * .18;
-        if (this.shake > .001) {
-          this.camera.position.x += (Math.random() - .5) * this.shake;
-          this.camera.position.y += (Math.random() - .5) * this.shake * .45;
-          this.shake *= Math.pow(.025, delta);
-        }
-        this.renderer.render(this.scene, this.camera);
-      }
-    }
-
-    class CanvasFX {
-      constructor(canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext("2d");
-        this.particles = [];
-        window.addEventListener("resize", () => this.resize());
-        this.resize();
-        this.loop();
-      }
-      resize() {
-        const dpr = Math.min(devicePixelRatio || 1, 2);
-        this.canvas.width = innerWidth * dpr;
-        this.canvas.height = innerHeight * dpr;
-        this.canvas.style.width = innerWidth + "px";
-        this.canvas.style.height = innerHeight + "px";
-        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      }
-      burst(kind = "win") {
-        const amount = kind === "win" ? 130 : 36;
-        for (let i = 0; i < amount; i++) {
-          this.particles.push({
-            x: innerWidth * .5, y: innerHeight * .28,
-            vx: (Math.random() - .5) * (kind === "win" ? 10 : 5), vy: -Math.random() * (kind === "win" ? 8 : 4) - 2,
-            g: .16 + Math.random() * .08, size: Math.random() * 8 + 4, rot: Math.random() * Math.PI, spin: (Math.random() - .5) * .24,
-            life: 86 + Math.random() * 42, color: kind === "win" ? `hsl(${Math.random() * 80 + 35}, 95%, 64%)` : "rgba(251,113,133,.82)"
-          });
-        }
-      }
-      loop() {
-        requestAnimationFrame(() => this.loop());
-        this.ctx.clearRect(0, 0, innerWidth, innerHeight);
-        this.particles = this.particles.filter(p => p.life > 0);
-        for (const p of this.particles) {
-          p.x += p.vx; p.y += p.vy; p.vy += p.g; p.rot += p.spin; p.life--;
-          this.ctx.save(); this.ctx.translate(p.x, p.y); this.ctx.rotate(p.rot); this.ctx.globalAlpha = Math.max(p.life / 100, 0);
-          this.ctx.fillStyle = p.color; this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * .65); this.ctx.restore();
-        }
-      }
-    }
-
-    const storage = {
-      load() { try { return JSON.parse(localStorage.getItem("three-hangman-stats")) || { wins: 0, losses: 0, streak: 0 }; } catch { return { wins: 0, losses: 0, streak: 0 }; } },
-      save(stats) { localStorage.setItem("three-hangman-stats", JSON.stringify(stats)); }
-    };
-
-    class HangmanGame {
-      constructor(sceneController, fx) {
-        this.sceneController = sceneController;
-        this.fx = fx;
-        this.state = { mode: "easy", item: null, guessed: new Set(), fails: 0, ended: false, hintOpen: false, stats: storage.load() };
-        this.bind();
-        this.updateStats();
-        this.newRound();
-      }
-      bind() {
-        els.newGame.addEventListener("click", () => this.newRound());
-        els.playAgain.addEventListener("click", () => this.newRound());
-        els.showHint.addEventListener("click", () => this.openHint());
-        els.resetStats.addEventListener("click", () => this.resetStats());
-        els.modes.addEventListener("click", e => {
-          const btn = e.target.closest("[data-mode]");
-          if (!btn) return;
-          this.state.mode = btn.dataset.mode;
-          els.modes.querySelectorAll(".chip").forEach(chip => chip.classList.toggle("active", chip === btn));
-          this.newRound();
-        });
-        window.addEventListener("keydown", e => this.handleKey(e));
-        els.modal.addEventListener("click", e => { if (e.target === els.modal) els.modal.classList.remove("show"); });
-      }
-      getPool() {
-        const ranges = { easy: [0, 8], normal: [7, 11], hard: [10, 99] };
-        const [min, max] = ranges[this.state.mode];
-        const pool = WORDS.filter(item => item.word.length >= min && item.word.length <= max);
-        return pool.length ? pool : WORDS;
-      }
-      newRound() {
-        const pool = this.getPool();
-        this.state.item = pool[Math.floor(Math.random() * pool.length)];
-        this.state.guessed = new Set();
-        this.state.fails = 0; this.state.ended = false; this.state.hintOpen = false;
-        els.modal.classList.remove("show");
-        els.category.textContent = this.state.item.category;
-        els.hint.textContent = "Подсказка скрыта. Открой её, если хочешь облегчить раунд.";
-        els.message.innerHTML = "<strong>Новый раунд:</strong> выбери букву на экране или нажимай клавиши.";
-        this.sceneController?.resetRound?.();
-        this.renderWord(); this.renderKeyboard(); this.updateRisk();
-      }
-      handleKey(event) {
-        if (event.key === "Enter") return this.newRound();
-        if (event.key === "Escape") return els.modal.classList.remove("show");
-        const letter = this.normalizeLetter(event.key);
-        if (letter) this.guess(letter);
-      }
-      normalizeLetter(value) {
-        if (!value || value.length !== 1) return "";
-        const lower = value.toLowerCase();
-        if (KEYBOARD_MAP[lower]) return KEYBOARD_MAP[lower];
-        const upper = value.toUpperCase();
-        return /[А-ЯЁ]/.test(upper) ? upper : "";
-      }
-      guess(letter) {
-        if (this.state.ended || this.state.guessed.has(letter)) return;
-        this.state.guessed.add(letter);
-        if (this.state.item.word.includes(letter)) {
-          els.message.innerHTML = `<strong>Попадание:</strong> буква «${letter}» есть в слове.`;
-        } else {
-          this.state.fails++;
-          els.message.innerHTML = `<strong>Ошибка:</strong> буквы «${letter}» нет. 3D-сцена стала опаснее.`;
-          els.gameCard.classList.remove("shake"); void els.gameCard.offsetWidth; els.gameCard.classList.add("shake");
-          this.fx.burst("bad");
-        }
-        this.renderWord(); this.renderKeyboard(); this.updateRisk(); this.checkEnd();
-      }
-      renderWord(revealAll = false) {
-        els.word.innerHTML = [...this.state.item.word].map((char, i) => {
-          const visible = revealAll || this.state.guessed.has(char);
-          return `<span class="slot ${visible ? "" : "hidden"}" style="--i:${i}">${visible ? char : "•"}</span>`;
-        }).join("");
-      }
-      renderKeyboard() {
-        els.keyboard.innerHTML = "";
-        ROWS.forEach(row => {
-          const div = document.createElement("div"); div.className = "key-row";
-          [...row].forEach(letter => {
-            const btn = document.createElement("button"); btn.type = "button"; btn.className = "key"; btn.textContent = letter;
-            if (this.state.guessed.has(letter)) { btn.disabled = true; btn.classList.add(this.state.item.word.includes(letter) ? "good" : "bad"); }
-            btn.addEventListener("click", () => this.guess(letter)); div.appendChild(btn);
-          });
-          els.keyboard.appendChild(div);
-        });
-      }
-      updateRisk() {
-        document.documentElement.style.setProperty("--fails", String(this.state.fails));
-        els.failsText.textContent = String(this.state.fails);
-        const labels = ["Сцена спокойна", "Появился силуэт", "Персонаж проявляется", "Свет меняется", "Сцена напряжена", "Последний шанс", "Раунд завершён"];
-        els.stageText.textContent = labels[this.state.fails] || labels[0];
-        this.sceneController?.setFailStage?.(this.state.fails);
-      }
-      hasWon() { return [...this.state.item.word].every(char => this.state.guessed.has(char)); }
-      checkEnd() { if (this.hasWon()) return this.finish(true); if (this.state.fails >= MAX_FAILS) return this.finish(false); }
-      finish(won) {
-        this.state.ended = true; this.renderWord(true);
-        if (won) {
-          this.state.stats.wins++; this.state.stats.streak++; this.sceneController?.setRoundState?.("win"); this.fx.burst("win");
-          this.showModal("🏆", "Победа!", "Слово собрано. Серия продолжается.", this.state.item.word);
-        } else {
-          this.state.stats.losses++; this.state.stats.streak = 0; this.sceneController?.setRoundState?.("lose");
-          this.showModal("💀", "Поражение", "Ошибок стало слишком много. Следующий раунд можно забрать.", this.state.item.word);
-        }
-        storage.save(this.state.stats); this.updateStats();
-      }
-      showModal(icon, title, text, answer) {
-        els.modalIcon.textContent = icon; els.modalTitle.textContent = title; els.modalText.textContent = text; els.modalAnswer.textContent = answer;
-        setTimeout(() => els.modal.classList.add("show"), 500);
-      }
-      openHint() { if (this.state.hintOpen) return; this.state.hintOpen = true; els.hint.textContent = this.state.item.hint; }
-      resetStats() { this.state.stats = { wins: 0, losses: 0, streak: 0 }; storage.save(this.state.stats); this.updateStats(); els.message.innerHTML = "<strong>Счёт сброшен:</strong> начинаем чистую серию."; }
-      updateStats() { els.wins.textContent = this.state.stats.wins; els.losses.textContent = this.state.stats.losses; els.streak.textContent = this.state.stats.streak; }
-    }
-
-    class FallbackScene {
-      constructor() { this.stage = 0; }
-      setFailStage(stage) { this.stage = stage; }
-      resetRound() {}
-      setRoundState() {}
-    }
-
-    els.copyDebug.addEventListener("click", async () => {
-      const text = diag.collect();
-      try {
-        await navigator.clipboard.writeText(text);
-        diag.write("INFO", "Диагностика скопирована в буфер обмена");
-      } catch {
-        diag.write("INFO", "Не удалось скопировать автоматически. Выдели текст вручную.");
-        els.debugPanel.open = true;
-      }
-    });
-    els.reloadPage.addEventListener("click", () => location.reload());
-    els.openModels.addEventListener("click", () => {
-      window.open(new URL(MODEL_URLS.gallows, location.href).href, "_blank");
-      setTimeout(() => window.open(new URL(MODEL_URLS.human, location.href).href, "_blank"), 250);
-    });
-
-    const fx = new CanvasFX(els.fx);
-    let sceneController = new FallbackScene();
-    let game = new HangmanGame(sceneController, fx);
-
-    async function boot() {
-      try {
-        setLoading(8, "Проверяю файлы моделей на GitHub Pages...");
-        const [gallowsOk, humanOk] = await Promise.all([
-          probeAsset("Gallows.glb", MODEL_URLS.gallows, els.gallowsStatus),
-          probeAsset("peasant.glb", MODEL_URLS.human, els.humanStatus)
-        ]);
-
-        const bundle = await importThreeBundle();
-        setLoading(38, `Three.js загружен через ${bundle.source}. Создаю сцену...`);
-        sceneController = new ThreeHangmanScene(bundle, els.scene3d);
-        game.sceneController = sceneController;
-        game.updateRisk();
-
-        if (!gallowsOk || !humanOk) {
-          els.debugPanel.open = true;
-          diag.write("MODEL-ERROR", "Один или оба GLB-файла не прошли предварительную проверку. GLTFLoader всё равно попробует загрузить их, но вероятна проблема с путём или регистром имени файла.");
-        }
-
-        await sceneController.loadModels();
-        setLoading(100, "Готово.");
-        setTimeout(() => els.loading.classList.add("hidden"), 350);
-        if (!els.debugPanel.open) els.debugState.textContent = "OK";
-      } catch (error) {
-        setLoading(100, "Three.js или GLB не загрузились. Игра запущена без 3D, ошибки ниже.");
-        els.loading.classList.add("hidden");
-        els.debugPanel.open = true;
-        els.debugState.textContent = "критическая ошибка";
-        els.message.innerHTML = "<strong>3D не загрузился:</strong> игра работает без 3D. Открой блок диагностики и пришли мне текст ошибок.";
-        diag.write("FATAL", error);
-      }
-    }
-
-    boot();
-  </script>
+    <script src="js/script.js"></script>
 </body>
 </html>
