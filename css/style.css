@@ -12,45 +12,50 @@ html {
 }
 
 body {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-        Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Основной текст использует Pixelify Sans для пиксельного ощущения,
+       fallback на sans-serif, чтобы текст оставался читабельным. */
+    font-family: 'Pixelify Sans', sans-serif;
     background-color: var(--bg);
     color: var(--text-primary);
     line-height: 1.6;
     transition: background-color 0.3s ease, color 0.3s ease;
+    /* Убираем сглаживание шрифтов, чтобы пиксели были резкими */
+    image-rendering: pixelated;
 }
 
 /* Палитра по умолчанию определяется для тёмной темы. */
+/* Цветовые палитры для пиксельного стиля. Более яркие акценты и тёмный фон.
+   Тёмная тема по умолчанию, но поддерживается и светлая. */
 :root[data-theme='dark'] {
-    --bg: #0a192f;
-    --surface: #112240;
-    --primary: #64ffda;
-    --secondary: #8892b0;
-    --accent: #e54b4d;
-    --text-primary: #ccd6f6;
-    --text-secondary: #8892b0;
-    --card-bg: #112240;
-    --input-bg: #0a192f;
-    --input-border: #233554;
-    --button-text: #0a192f;
-    --button-bg: #64ffda;
-    --button-hover: #52d5b3;
+    --bg: #010712;
+    --surface: #081125;
+    --primary: #00ffc6;
+    --secondary: #f5f5f5;
+    --accent: #ff0066;
+    --text-primary: #e0e0e0;
+    --text-secondary: #9faab7;
+    --card-bg: #0d1932;
+    --input-bg: #081125;
+    --input-border: #22324c;
+    --button-text: #010712;
+    --button-bg: #00ffc6;
+    --button-hover: #00d4a5;
 }
 
 :root[data-theme='light'] {
-    --bg: #f0f5fa;
+    --bg: #f9f9f9;
     --surface: #ffffff;
-    --primary: #0a192f;
-    --secondary: #4b5362;
-    --accent: #e54b4d;
-    --text-primary: #0a192f;
+    --primary: #00384d;
+    --secondary: #333333;
+    --accent: #ff0066;
+    --text-primary: #00384d;
     --text-secondary: #555f75;
     --card-bg: #ffffff;
     --input-bg: #ffffff;
-    --input-border: #ccd6f6;
+    --input-border: #99b5c6;
     --button-text: #ffffff;
-    --button-bg: #0a192f;
-    --button-hover: #142a4f;
+    --button-bg: #00384d;
+    --button-hover: #001f29;
 }
 
 .container {
@@ -66,7 +71,8 @@ body {
     width: 100%;
     z-index: 1000;
     background-color: var(--bg);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Пиксельная рамка под шапкой */
+    box-shadow: inset 0 -4px 0 0 var(--primary), 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .nav {
@@ -77,10 +83,12 @@ body {
 }
 
 .logo {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--primary);
-    letter-spacing: 0.05em;
+    letter-spacing: 2px;
+    font-family: 'Press Start 2P', 'Pixelify Sans', monospace;
+    text-transform: uppercase;
 }
 
 .nav-links {
@@ -92,9 +100,12 @@ body {
 .nav-links a {
     color: var(--text-primary);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     position: relative;
     transition: color 0.3s ease;
+    font-family: 'Press Start 2P', 'Pixelify Sans', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .nav-links a::after {
@@ -235,10 +246,13 @@ body {
 }
 
 .section-title {
-    font-size: 2rem;
+    font-size: 1.5rem;
     margin-bottom: 2rem;
     color: var(--primary);
     text-align: center;
+    font-family: 'Press Start 2P', 'Pixelify Sans', monospace;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 /* Герой */
@@ -256,14 +270,20 @@ body {
 }
 
 .hero h1 {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     line-height: 1.2;
-    color: var(--heading-color, var(--text-primary));
+    color: var(--primary);
+    font-family: 'Press Start 2P', 'Pixelify Sans', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 .hero h2 {
-    font-size: 1.5rem;
-    color: var(--secondary);
+    font-size: 1.2rem;
+    color: var(--accent);
+    font-family: 'Pixelify Sans', sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 .hero p {
@@ -284,12 +304,16 @@ body {
 
 .btn {
     padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-    font-weight: 600;
+    border-radius: 0;
+    font-weight: 700;
     text-decoration: none;
     display: inline-block;
     transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
     cursor: pointer;
+    box-shadow: 0 0 0 4px var(--primary);
+    font-family: 'Press Start 2P', 'Pixelify Sans', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .btn.primary {
@@ -304,9 +328,9 @@ body {
 }
 
 .btn.secondary {
-    background-color: transparent;
+    background-color: var(--bg);
     color: var(--primary);
-    border: 2px solid var(--primary);
+    box-shadow: 0 0 0 4px var(--primary);
 }
 
 .btn.secondary:hover,
@@ -326,12 +350,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid var(--primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 0;
+    box-shadow: 0 0 0 2px var(--primary);
     color: var(--primary);
     transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+    font-size: 0.8rem;
 }
 
 .social-icon:hover,
@@ -378,14 +403,18 @@ body {
 .skill-item {
     background-color: var(--card-bg);
     padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 0;
+    box-shadow: 0 0 0 3px var(--primary), inset 0 0 0 3px var(--accent);
 }
 
 .skill-name {
     font-weight: 600;
     color: var(--primary);
     margin-bottom: 0.5rem;
+    font-family: 'Press Start 2P', 'Pixelify Sans', monospace;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .skill-bar {
@@ -411,16 +440,16 @@ body {
 
 .project-card {
     background-color: var(--card-bg);
-    border-radius: 8px;
+    border-radius: 0;
     overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 0 0 4px var(--primary), inset 0 0 0 4px var(--accent);
     display: flex;
     flex-direction: column;
     transition: transform 0.3s ease;
 }
 
 .project-card:hover {
-    transform: translateY(-5px);
+    transform: translate(-2px, -2px);
 }
 
 .project-image img {
@@ -428,6 +457,7 @@ body {
     height: 160px;
     object-fit: cover;
     display: block;
+    image-rendering: pixelated;
 }
 
 .project-content {
@@ -438,9 +468,12 @@ body {
 }
 
 .project-content h4 {
-    font-size: 1.25rem;
+    font-size: 1rem;
     color: var(--primary);
     margin-bottom: 0.5rem;
+    font-family: 'Press Start 2P', 'Pixelify Sans', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .project-content p {
@@ -501,18 +534,23 @@ body {
     margin-bottom: 0.5rem;
     font-weight: 600;
     color: var(--primary);
+    font-family: 'Press Start 2P', 'Pixelify Sans', monospace;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .form-group input,
 .form-group textarea {
     padding: 0.75rem;
-    border: 2px solid var(--input-border);
-    border-radius: 4px;
+    border: none;
+    border-radius: 0;
     background-color: var(--input-bg);
     color: var(--text-primary);
-    font-family: inherit;
+    font-family: 'Pixelify Sans', sans-serif;
     font-size: 1rem;
     transition: border-color 0.3s ease;
+    box-shadow: 0 0 0 3px var(--primary), inset 0 0 0 3px var(--accent);
 }
 
 .form-group input:focus,
@@ -545,6 +583,55 @@ body {
 
 .footer p span[aria-label] {
     vertical-align: baseline;
+}
+
+/* Пиксельные анимации */
+@keyframes glitch {
+    0% {
+        text-shadow: 2px 2px var(--accent);
+        transform: translate(0, 0);
+    }
+    20% {
+        text-shadow: -2px 0 var(--primary);
+        transform: translate(-2px, -2px);
+    }
+    40% {
+        text-shadow: 2px -2px var(--accent);
+        transform: translate(2px, 2px);
+    }
+    60% {
+        text-shadow: -2px 2px var(--primary);
+        transform: translate(-2px, 2px);
+    }
+    80% {
+        text-shadow: 2px 2px var(--accent);
+        transform: translate(2px, -2px);
+    }
+    100% {
+        text-shadow: none;
+        transform: translate(0, 0);
+    }
+}
+
+@keyframes caret {
+    0%, 50% {
+        opacity: 1;
+    }
+    50%, 100% {
+        opacity: 0;
+    }
+}
+
+.glitch {
+    display: inline-block;
+    animation: glitch 2.5s infinite steps(2, end);
+}
+
+.blink-caret::after {
+    content: '_';
+    margin-left: 4px;
+    animation: caret 1s steps(1, end) infinite;
+    color: var(--accent);
 }
 
 /* Адаптивность */
